@@ -222,9 +222,18 @@ export default function AdminDashboard() {
 
       try {
         const [catalogResponse, siteContentResponse, bookingsResponse] = await Promise.all([
-          fetch("/api/admin/catalog", { headers: { "x-admin-key": key } }),
-          fetch("/api/admin/site-content", { headers: { "x-admin-key": key } }),
-          fetch("/api/bookings", { headers: { "x-admin-key": key } }),
+          fetch("/api/admin/catalog", {
+            headers: { "x-admin-key": key },
+            cache: "no-store",
+          }),
+          fetch("/api/admin/site-content", {
+            headers: { "x-admin-key": key },
+            cache: "no-store",
+          }),
+          fetch("/api/bookings", {
+            headers: { "x-admin-key": key },
+            cache: "no-store",
+          }),
         ]);
 
         const [catalogData, siteContentData, bookingsData] = await Promise.all([
@@ -546,6 +555,7 @@ export default function AdminDashboard() {
       }
 
       setSiteContent(data.siteContent ?? getDefaultSiteContent());
+      await loadDashboard(adminKey);
       setSiteMessage("Homepage content saved.");
     } catch (error) {
       setSiteMessage(error.message || "Could not save the CMS content.");
@@ -586,6 +596,7 @@ export default function AdminDashboard() {
       }
 
       setCatalog(data.catalog);
+      await loadDashboard(adminKey);
       setCatalogMessage("Fleet and pricing saved.");
     } catch (error) {
       setCatalogMessage(error.message || "Could not save the catalog.");
