@@ -1,5 +1,10 @@
 import AnytimeAnywhereLimoWebsite from "./_components/anytime-anywhere-limo-website";
+import { getCatalog } from "@/lib/catalog";
 
-export default function Home() {
-  return <AnytimeAnywhereLimoWebsite />;
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const catalog = await getCatalog();
+
+  return <AnytimeAnywhereLimoWebsite initialCatalog={catalog} />;
 }

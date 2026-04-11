@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   calculateEstimate,
+  computeStartingRates,
   defaultForm,
   fleet,
   formatCurrency,
+  getDefaultCatalog,
+  getVehicleBySlug,
   services,
-  startingRates,
   testimonials,
   validateBooking,
 } from "@/lib/booking";
@@ -62,16 +64,16 @@ function FleetCard({ vehicle, onChoose }) {
           </p>
         </div>
         <span className="rounded-full border border-[var(--line-strong)] px-3 py-1 text-xs text-[var(--accent-strong)]">
-          from {formatCurrency(startingRates[vehicle.name])}
+          from {formatCurrency(vehicle.startingRate ?? 0)}
         </span>
       </div>
 
-      <p className="mt-4 text-sm leading-7 text-white/72">{vehicle.details}</p>
+      <p className="mt-4 text-sm leading-7 text-white/72">{vehicle.description}</p>
       <div className="mt-6 flex items-center justify-between text-sm text-white/60">
         <span>{vehicle.capacity} passengers</span>
         <button
           type="button"
-          onClick={() => onChoose(vehicle.name)}
+          onClick={() => onChoose(vehicle.slug)}
           className="rounded-full border border-white/12 px-4 py-2 font-semibold text-white hover:border-[var(--accent)] hover:bg-white/6"
         >
           Select vehicle
@@ -234,15 +236,22 @@ function AddressAutocompleteField({
   );
 }
 
-export default function AnytimeAnywhereLimoWebsite() {
-  const [form, setForm] = useState(defaultForm);
+export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
+  const catalog = initialCatalog ?? getDefaultCatalog();
+  const vehicles = catalog.vehicles?.length ? catalog.vehicles : fleet;
+  const startingRates = computeStartingRates(catalog);
+  const [form, setForm] = useState(() => ({
+    ...defaultForm,
+    vehicle: vehicles[0]?.slug ?? defaultForm.vehicle,
+  }));
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [submittedBooking, setSubmittedBooking] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const estimate = calculateEstimate(form);
-  const selectedVehicle = fleet.find((item) => item.name === form.vehicle) ?? fleet[1];
+  const estimate = calculateEstimate(form, catalog);
+  const selectedVehicle =
+    getVehicleBySlug(form.vehicle, catalog) ?? vehicles[0];
   const passengerOptions = Array.from(
     { length: selectedVehicle.capacity },
     (_, index) => String(index + 1),
@@ -269,12 +278,13 @@ export default function AnytimeAnywhereLimoWebsite() {
     setSubmitError("");
   }
 
-  function updateVehicle(vehicleName) {
-    const nextVehicle = fleet.find((item) => item.name === vehicleName) ?? fleet[1];
+  function updateVehicle(vehicleSlug) {
+    const nextVehicle =
+      getVehicleBySlug(vehicleSlug, catalog) ?? vehicles[0];
 
     setForm((currentForm) => ({
       ...currentForm,
-      vehicle: vehicleName,
+      vehicle: vehicleSlug,
       passengers: String(
         Math.min(Number(currentForm.passengers), nextVehicle.capacity) || 1,
       ),
@@ -294,15 +304,15 @@ export default function AnytimeAnywhereLimoWebsite() {
     scrollToBooking();
   }
 
-  function handleVehiclePick(vehicleName) {
-    updateVehicle(vehicleName);
+  function handleVehiclePick(vehicleSlug) {
+    updateVehicle(vehicleSlug);
     scrollToBooking();
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
 
-    const nextErrors = validateBooking(form);
+    const nextErrors = validateBooking(form, { catalog });
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -336,7 +346,10 @@ export default function AnytimeAnywhereLimoWebsite() {
       setSubmittedBooking(data.booking);
       setErrors({});
       setSubmitError("");
-      setForm(defaultForm);
+      setForm({
+        ...defaultForm,
+        vehicle: vehicles[0]?.slug ?? defaultForm.vehicle,
+      });
     } catch {
       setSubmitError(
         "We could not reach the booking service. Check your connection and try again.",
@@ -523,10 +536,10 @@ export default function AnytimeAnywhereLimoWebsite() {
                       onChange={(event) => updateVehicle(event.target.value)}
                       className={fieldClassName}
                     >
-                      {fleet.map((vehicle) => (
+                      {vehicles.map((vehicle) => (
                         <option
-                          key={vehicle.name}
-                          value={vehicle.name}
+                          key={vehicle.slug}
+                          value={vehicle.slug}
                           className="bg-[#101319]"
                         >
                           {vehicle.name}
@@ -769,8 +782,15 @@ export default function AnytimeAnywhereLimoWebsite() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            {fleet.map((vehicle) => (
-              <FleetCard key={vehicle.name} vehicle={vehicle} onChoose={handleVehiclePick} />
+            {vehicles.map((vehicle) => (
+              <FleetCard
+                key={vehicle.slug}
+                vehicle={{
+                  ...vehicle,
+                  startingRate: startingRates[vehicle.slug] ?? 0,
+                }}
+                onChoose={handleVehiclePick}
+              />
             ))}
           </div>
         </section>

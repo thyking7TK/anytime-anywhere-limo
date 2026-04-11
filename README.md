@@ -80,6 +80,21 @@ GET /api/bookings?key=YOUR_ADMIN_KEY
 
 You can also send the same key in the `x-admin-key` header.
 
+The admin dashboard is available at:
+
+```bash
+/admin
+```
+
+From there you can:
+
+- review recent bookings
+- update booking status
+- add or edit available vehicles
+- change base rates and pricing fees
+
+Public vehicle options and live estimates now read from the same catalog data, so admin pricing changes show up on the booking page without another code change.
+
 ## Environment variables
 
 Copy `.env.example` to `.env.local` for local development.
