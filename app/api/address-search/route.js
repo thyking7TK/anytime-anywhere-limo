@@ -3,6 +3,13 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const addressSearchCache = globalThis.__anytimeAnywhereAddressCache ?? new Map();
+
+if (!globalThis.__anytimeAnywhereAddressCache) {
+  globalThis.__anytimeAnywhereAddressCache = addressSearchCache;
+}
+
 function buildSecondaryText(address = {}) {
   const locality =
     address.city ||
@@ -57,13 +64,25 @@ export async function GET(request) {
     return NextResponse.json({ suggestions: [] });
   }
 
+  const normalizedQuery = query.toLowerCase();
+
   const upstream = new URL("https://nominatim.openstreetmap.org/search");
   upstream.searchParams.set("format", "jsonv2");
   upstream.searchParams.set("addressdetails", "1");
   upstream.searchParams.set("limit", "5");
   upstream.searchParams.set("q", query);
 
-  const countryCodes = process.env.ADDRESS_SEARCH_COUNTRY_CODES?.trim();
+  const countryCodes =
+    process.env.ADDRESS_SEARCH_COUNTRY_CODES?.trim() || "us";
+
+  const cacheKey = `${countryCodes}:${normalizedQuery}`;
+  const cachedEntry = addressSearchCache.get(cacheKey);
+
+  if (cachedEntry && cachedEntry.expiresAt > Date.now()) {
+    return NextResponse.json({
+      suggestions: cachedEntry.suggestions,
+    });
+  }
 
   if (countryCodes) {
     upstream.searchParams.set("countrycodes", countryCodes);
@@ -87,9 +106,14 @@ export async function GET(request) {
 
     const results = await response.json();
 
-    return NextResponse.json({
-      suggestions: Array.isArray(results) ? results.map(mapSuggestion) : [],
+    const suggestions = Array.isArray(results) ? results.map(mapSuggestion) : [];
+
+    addressSearchCache.set(cacheKey, {
+      suggestions,
+      expiresAt: Date.now() + CACHE_TTL_MS,
     });
+
+    return NextResponse.json({ suggestions });
   } catch (error) {
     console.error("Address search failed", error);
 

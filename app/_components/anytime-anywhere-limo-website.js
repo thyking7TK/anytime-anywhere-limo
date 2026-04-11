@@ -15,6 +15,7 @@ import {
 
 const fieldClassName =
   "w-full rounded-[1.15rem] border border-white/10 bg-white/6 px-4 py-3.5 text-sm text-white outline-none placeholder:text-white/30 focus:border-[var(--accent)] focus:bg-white/8";
+const addressSuggestionCache = new Map();
 
 function ServiceCard({ service, onChoose }) {
   return (
@@ -100,6 +101,15 @@ function AddressAutocompleteField({
       return undefined;
     }
 
+    const normalizedQuery = value.trim().toLowerCase();
+    const cachedSuggestions = addressSuggestionCache.get(normalizedQuery);
+
+    if (cachedSuggestions) {
+      setSuggestions(cachedSuggestions);
+      setIsLoading(false);
+      return undefined;
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(async () => {
       setIsLoading(true);
@@ -118,7 +128,11 @@ function AddressAutocompleteField({
         }
 
         const data = await response.json();
-        setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+        const nextSuggestions = Array.isArray(data.suggestions)
+          ? data.suggestions
+          : [];
+        addressSuggestionCache.set(normalizedQuery, nextSuggestions);
+        setSuggestions(nextSuggestions);
       } catch (error) {
         if (error.name !== "AbortError") {
           setSuggestions([]);
@@ -128,7 +142,7 @@ function AddressAutocompleteField({
           setIsLoading(false);
         }
       }
-    }, 250);
+    }, 120);
 
     return () => {
       controller.abort();
