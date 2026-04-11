@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useRef, useState } from "react";
 
@@ -42,17 +43,37 @@ function ServiceCard({ service, onChoose }) {
 }
 
 function FleetCard({ vehicle, onChoose }) {
+  const imageUrls = Array.isArray(vehicle.imageUrls) ? vehicle.imageUrls : [];
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const resolvedImageIndex = imageUrls[selectedImageIndex] ? selectedImageIndex : 0;
+  const activeImageUrl = imageUrls[resolvedImageIndex] ?? imageUrls[0] ?? null;
+
   return (
     <article className="glass-panel fade-in rounded-[2rem] p-6">
       <div
         className={`soft-grid relative mb-6 overflow-hidden rounded-[1.5rem] border border-white/10 bg-gradient-to-br ${vehicle.accent} p-5`}
       >
         <div className="float-sheen absolute inset-x-10 top-4 h-24 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.18),transparent_68%)] blur-2xl" />
-        <div className="relative h-36 rounded-[1.25rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.02))] p-4">
-          <div className="absolute inset-x-6 bottom-8 h-10 rounded-[999px] border border-white/12 bg-black/35" />
-          <div className="absolute inset-x-10 bottom-12 h-12 rounded-[999px] border border-white/14 bg-[linear-gradient(90deg,rgba(255,255,255,0.18),rgba(255,255,255,0.04))]" />
-          <div className="absolute bottom-11 left-12 h-5 w-5 rounded-full border border-white/15 bg-black/70" />
-          <div className="absolute bottom-11 right-12 h-5 w-5 rounded-full border border-white/15 bg-black/70" />
+        <div className="relative h-36 overflow-hidden rounded-[1.25rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.02))]">
+          {activeImageUrl ? (
+            <>
+              <img
+                src={activeImageUrl}
+                alt={vehicle.name}
+                className="h-full w-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,10,14,0.05),rgba(8,10,14,0.48))]" />
+            </>
+          ) : (
+            <div className="relative h-full p-4">
+              <div className="absolute inset-x-6 bottom-8 h-10 rounded-[999px] border border-white/12 bg-black/35" />
+              <div className="absolute inset-x-10 bottom-12 h-12 rounded-[999px] border border-white/14 bg-[linear-gradient(90deg,rgba(255,255,255,0.18),rgba(255,255,255,0.04))]" />
+              <div className="absolute bottom-11 left-12 h-5 w-5 rounded-full border border-white/15 bg-black/70" />
+              <div className="absolute bottom-11 right-12 h-5 w-5 rounded-full border border-white/15 bg-black/70" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -69,6 +90,30 @@ function FleetCard({ vehicle, onChoose }) {
       </div>
 
       <p className="mt-4 text-sm leading-7 text-white/72">{vehicle.description}</p>
+      {imageUrls.length > 1 ? (
+        <div className="mt-4 flex gap-2">
+          {imageUrls.slice(0, 5).map((imageUrl, index) => (
+            <button
+              key={imageUrl}
+              type="button"
+              onClick={() => setSelectedImageIndex(index)}
+                className={`overflow-hidden rounded-[0.9rem] border ${
+                index === resolvedImageIndex
+                  ? "border-[var(--accent)]"
+                  : "border-white/10"
+              }`}
+            >
+              <img
+                src={imageUrl}
+                alt={`${vehicle.name} preview ${index + 1}`}
+                className="h-14 w-16 object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="mt-6 flex items-center justify-between text-sm text-white/60">
         <span>{vehicle.capacity} passengers</span>
         <button

@@ -70,6 +70,22 @@ Notes:
 - If `BOOKING_SEND_CUSTOMER_CONFIRMATIONS=true`, the app also sends a customer confirmation email.
 - Without a verified domain, Resend test sending is limited. Use a verified domain before turning on customer confirmations.
 
+## Vehicle image uploads
+
+The admin dashboard can now upload up to 5 images per vehicle and save those URLs in the vehicle catalog.
+
+Required environment variable:
+
+- `BLOB_READ_WRITE_TOKEN`
+
+For Vercel, the simplest setup is:
+
+1. Add a Blob store from your project storage tab.
+2. Confirm `BLOB_READ_WRITE_TOKEN` appears in the project environment variables.
+3. Redeploy the project.
+
+Vehicle uploads are available from the admin dashboard at `/admin`.
+
 ## Optional admin access
 
 If you set `BOOKINGS_ADMIN_KEY`, you can fetch recent bookings from:

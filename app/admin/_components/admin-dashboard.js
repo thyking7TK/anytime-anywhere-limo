@@ -1,5 +1,7 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
+import { upload } from "@vercel/blob/client";
 import { useCallback, useEffect, useState } from "react";
 
 import { formatCurrency, services } from "@/lib/booking";
@@ -10,6 +12,7 @@ import {
 
 const storageKey = "anytime-anywhere-admin-key";
 const bookingStatuses = ["pending", "confirmed", "completed", "cancelled"];
+const vehicleImageLimit = 5;
 
 function createEmptyVehicle(index = 0) {
   return {
@@ -19,6 +22,7 @@ function createEmptyVehicle(index = 0) {
     description: "",
     mood: "",
     accent: "from-white/10 via-transparent to-transparent",
+    imageUrls: [],
     active: true,
     displayOrder: index + 1,
   };
@@ -34,6 +38,17 @@ function normalizeDecimalInput(value, fallback = 0) {
   return Number.isFinite(number) ? number : fallback;
 }
 
+function sanitizeFilename(filename) {
+  const safeName = String(filename ?? "vehicle-image")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return safeName || `vehicle-image-${Date.now()}.jpg`;
+}
+
 export default function AdminDashboard() {
   const [keyInput, setKeyInput] = useState("");
   const [adminKey, setAdminKey] = useState("");
@@ -44,6 +59,7 @@ export default function AdminDashboard() {
   const [savingCatalog, setSavingCatalog] = useState(false);
   const [catalogMessage, setCatalogMessage] = useState("");
   const [bookingMessage, setBookingMessage] = useState("");
+  const [uploadingVehicleSlugs, setUploadingVehicleSlugs] = useState([]);
 
   useEffect(() => {
     const savedKey = window.localStorage.getItem(storageKey);
@@ -146,6 +162,48 @@ export default function AdminDashboard() {
     setCatalogMessage("");
   }
 
+  function appendVehicleImages(index, imageUrls) {
+    setCatalog((currentCatalog) => {
+      const vehicles = [...currentCatalog.vehicles];
+      const currentVehicle = vehicles[index];
+      const nextImageUrls = [
+        ...(currentVehicle.imageUrls ?? []),
+        ...imageUrls,
+      ].slice(0, vehicleImageLimit);
+
+      vehicles[index] = {
+        ...currentVehicle,
+        imageUrls: nextImageUrls,
+      };
+
+      return {
+        ...currentCatalog,
+        vehicles,
+      };
+    });
+    setCatalogMessage("");
+  }
+
+  function removeVehicleImage(index, imageUrl) {
+    setCatalog((currentCatalog) => {
+      const vehicles = [...currentCatalog.vehicles];
+      const currentVehicle = vehicles[index];
+
+      vehicles[index] = {
+        ...currentVehicle,
+        imageUrls: (currentVehicle.imageUrls ?? []).filter(
+          (value) => value !== imageUrl,
+        ),
+      };
+
+      return {
+        ...currentCatalog,
+        vehicles,
+      };
+    });
+    setCatalogMessage("");
+  }
+
   function addVehicle() {
     setCatalog((currentCatalog) => ({
       ...currentCatalog,
@@ -155,6 +213,69 @@ export default function AdminDashboard() {
       ],
     }));
     setCatalogMessage("");
+  }
+
+  async function handleVehicleImageUpload(index, fileList) {
+    const files = Array.from(fileList ?? []);
+    const vehicle = catalog?.vehicles?.[index];
+
+    if (!vehicle || files.length === 0) {
+      return;
+    }
+
+    const existingImages = Array.isArray(vehicle.imageUrls)
+      ? vehicle.imageUrls
+      : [];
+    const remainingSlots = vehicleImageLimit - existingImages.length;
+
+    if (remainingSlots <= 0) {
+      setCatalogMessage("Each vehicle can only have up to 5 images.");
+      return;
+    }
+
+    const filesToUpload = files.slice(0, remainingSlots);
+
+    if (files.length > filesToUpload.length) {
+      setCatalogMessage("Only the first 5 vehicle images can be saved.");
+    } else {
+      setCatalogMessage("");
+    }
+
+    setUploadingVehicleSlugs((current) =>
+      current.includes(vehicle.slug) ? current : [...current, vehicle.slug],
+    );
+
+    try {
+      const uploadedImages = await Promise.all(
+        filesToUpload.map(async (file) => {
+          const pathname = `vehicle-images/${vehicle.slug}/${sanitizeFilename(file.name)}`;
+          const blob = await upload(pathname, file, {
+            access: "public",
+            handleUploadUrl: "/api/admin/vehicle-images",
+            headers: {
+              "x-admin-key": adminKey,
+            },
+            clientPayload: JSON.stringify({
+              vehicleSlug: vehicle.slug,
+            }),
+            multipart: file.size > 4_000_000,
+          });
+
+          return blob.url;
+        }),
+      );
+
+      appendVehicleImages(index, uploadedImages);
+      setCatalogMessage("Vehicle images uploaded. Save the catalog to publish them.");
+    } catch (error) {
+      setCatalogMessage(
+        error.message || "Could not upload the vehicle images right now.",
+      );
+    } finally {
+      setUploadingVehicleSlugs((current) =>
+        current.filter((slug) => slug !== vehicle.slug),
+      );
+    }
   }
 
   function updatePricing(serviceId, vehicleSlug, value) {
@@ -518,6 +639,75 @@ export default function AdminDashboard() {
                           />
                           Active
                         </label>
+                      </div>
+
+                      <div className="rounded-[1.2rem] border border-white/8 bg-white/4 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                              Vehicle photos
+                            </p>
+                            <p className="mt-2 text-sm text-white/62">
+                              Upload up to 5 images for this vehicle.
+                            </p>
+                            <p className="mt-1 text-xs text-white/45">
+                              {(vehicle.imageUrls ?? []).length} / {vehicleImageLimit} saved
+                            </p>
+                          </div>
+
+                          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/12 px-4 py-2 text-sm font-semibold text-white hover:bg-white/6">
+                            <span>
+                              {uploadingVehicleSlugs.includes(vehicle.slug)
+                                ? "Uploading..."
+                                : "Upload images"}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              disabled={uploadingVehicleSlugs.includes(vehicle.slug)}
+                              onChange={(event) => {
+                                void handleVehicleImageUpload(index, event.target.files);
+                                event.target.value = "";
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          {(vehicle.imageUrls ?? []).map((imageUrl) => (
+                            <div
+                              key={imageUrl}
+                              className="overflow-hidden rounded-[1rem] border border-white/8 bg-black/20"
+                            >
+                              <img
+                                src={imageUrl}
+                                alt={`${vehicle.name || "Vehicle"} photo`}
+                                className="h-36 w-full object-cover"
+                                loading="lazy"
+                              />
+                              <div className="flex items-center justify-between gap-3 px-3 py-2">
+                                <p className="truncate text-xs text-white/45">
+                                  {imageUrl.split("/").pop()}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => removeVehicleImage(index, imageUrl)}
+                                  className="text-xs font-semibold text-amber-200 hover:text-white"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {(vehicle.imageUrls ?? []).length === 0 ? (
+                          <p className="mt-4 text-sm text-white/45">
+                            No vehicle photos uploaded yet.
+                          </p>
+                        ) : null}
                       </div>
 
                       <p className="text-xs uppercase tracking-[0.22em] text-white/35">

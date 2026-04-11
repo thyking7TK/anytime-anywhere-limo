@@ -41,6 +41,25 @@ function validateCatalogPayload(payload = {}) {
     if (!Number.isInteger(capacity) || capacity < 1) {
       errors.push(`Vehicle "${name || slug}" needs a valid capacity.`);
     }
+
+    const imageUrls = Array.isArray(vehicle.imageUrls) ? vehicle.imageUrls : [];
+
+    if (imageUrls.length > 5) {
+      errors.push(`Vehicle "${name || slug}" can only have up to 5 images.`);
+    }
+
+    for (const imageUrl of imageUrls) {
+      const normalizedUrl = String(imageUrl ?? "").trim();
+
+      if (
+        !normalizedUrl.startsWith("https://") &&
+        !normalizedUrl.startsWith("http://")
+      ) {
+        errors.push(
+          `Vehicle "${name || slug}" has an invalid image URL.`,
+        );
+      }
+    }
   }
 
   const pricingSettings = payload.pricingSettings ?? {};
