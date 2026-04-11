@@ -15,6 +15,8 @@ import { getCatalog } from "@/lib/catalog";
 import { insertBooking, listRecentBookings, updateBookingStatus } from "@/lib/bookings";
 import { isDatabaseConfigured } from "@/lib/database";
 import { sendBookingEmails } from "@/lib/email";
+import { getSiteContent } from "@/lib/site-content";
+import { getSiteServiceById } from "@/lib/site-content-shared";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +27,15 @@ function createReference() {
   return `AA-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }
 
-function formatStoredBooking(record) {
+function getResolvedServiceTitle(serviceId, siteContent) {
+  return (
+    getSiteServiceById(siteContent, serviceId)?.title ??
+    getServiceById(serviceId)?.title ??
+    serviceId
+  );
+}
+
+function formatStoredBooking(record, siteContent) {
   const rideLocalValue =
     typeof record.ride_local_at === "string"
       ? record.ride_local_at.replace(" ", "T")
@@ -38,7 +48,7 @@ function formatStoredBooking(record) {
     email: record.email,
     phone: record.phone,
     service: record.service,
-    serviceTitle: getServiceById(record.service)?.title ?? record.service,
+    serviceTitle: getResolvedServiceTitle(record.service, siteContent),
     vehicleSlug: record.vehicle_slug,
     vehicle: record.vehicle,
     pickup: record.pickup_location,
@@ -94,6 +104,8 @@ export async function POST(request) {
   const estimate = calculateEstimate(form, catalog);
   const rideLocalAt = buildRideLocalTimestamp(form.date, form.time);
   const selectedVehicle = getVehicleBySlug(form.vehicle, catalog);
+  const siteContent = await getSiteContent();
+  const serviceTitle = getResolvedServiceTitle(form.service, siteContent);
   const reference = createReference();
   const bookingForNotifications = {
     reference,
@@ -102,6 +114,7 @@ export async function POST(request) {
     email: form.email,
     phone: form.phone,
     service: form.service,
+    serviceTitle,
     vehicle: selectedVehicle?.name ?? form.vehicle,
     pickup: form.pickup,
     dropoff: form.dropoff,
@@ -159,7 +172,7 @@ export async function POST(request) {
         estimate,
         fullName: form.fullName,
         email: form.email,
-        service: getServiceById(form.service)?.title ?? "Service",
+        service: serviceTitle,
         vehicle: selectedVehicle?.name ?? form.vehicle,
         pickup: form.pickup,
         dropoff: form.dropoff,
@@ -190,10 +203,11 @@ export async function GET(request) {
   }
 
   try {
+    const siteContent = await getSiteContent();
     const bookings = await listRecentBookings();
 
     return NextResponse.json({
-      bookings: bookings.map(formatStoredBooking),
+      bookings: bookings.map((booking) => formatStoredBooking(booking, siteContent)),
     });
   } catch (error) {
     console.error("Failed to load bookings", error);
@@ -254,8 +268,10 @@ export async function PATCH(request) {
       );
     }
 
+    const siteContent = await getSiteContent();
+
     return NextResponse.json({
-      booking: formatStoredBooking(booking),
+      booking: formatStoredBooking(booking, siteContent),
     });
   } catch (error) {
     console.error("Failed to update booking status", error);

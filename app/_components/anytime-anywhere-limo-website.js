@@ -15,6 +15,7 @@ import {
   testimonials,
   validateBooking,
 } from "@/lib/booking";
+import { getDefaultSiteContent } from "@/lib/site-content-shared";
 
 const fieldClassName =
   "frost-input w-full rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-4 text-sm text-white outline-none placeholder:text-white/32 focus:border-[var(--accent)] focus:bg-white/7";
@@ -313,9 +314,39 @@ function AddressAutocompleteField({
   );
 }
 
-export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
+export default function AnytimeAnywhereLimoWebsite({
+  initialCatalog,
+  initialSiteContent,
+}) {
   const catalog = initialCatalog ?? getDefaultCatalog();
+  const siteContent = initialSiteContent ?? getDefaultSiteContent();
   const vehicles = catalog.vehicles?.length ? catalog.vehicles : fleet;
+  const serviceEntries = siteContent.services?.length ? siteContent.services : services;
+  const testimonialEntries =
+    siteContent.testimonials?.length ? siteContent.testimonials : testimonials;
+  const heroStats =
+    siteContent.heroStats?.length ? siteContent.heroStats : [
+      {
+        value: "24/7",
+        text: "Reservation support for early departures, late arrivals, and schedule-sensitive rides.",
+      },
+    ];
+  const howItWorksContent = siteContent.howItWorks ?? {};
+  const howItWorksEntries =
+    howItWorksContent.steps?.length ? howItWorksContent.steps : howItWorksSteps;
+  const proofContent = siteContent.proof ?? {};
+  const heroContent = siteContent.hero ?? {};
+  const brandContent = siteContent.brand ?? {};
+  const navigationContent = siteContent.navigation ?? {};
+  const servicesSection = siteContent.servicesSection ?? {};
+  const fleetSection = siteContent.fleetSection ?? {};
+  const reviewsSection = siteContent.reviewsSection ?? {};
+  const contactSection = siteContent.contactSection ?? {};
+  const footerContent = siteContent.footer ?? {};
+  const floatingActions = siteContent.floatingActions ?? {};
+  const contactPhoneHref = `tel:${String(
+    contactSection.phoneValue ?? "",
+  ).replace(/[^+\d]/g, "")}`;
   const startingRates = computeStartingRates(catalog);
   const [form, setForm] = useState(() => ({
     ...defaultForm,
@@ -332,24 +363,6 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
     { length: selectedVehicle.capacity },
     (_, index) => String(index + 1),
   );
-  const heroStats = [
-    {
-      value: "24/7",
-      text: "Reservation support for early departures, late arrivals, and schedule-sensitive rides.",
-    },
-    {
-      value: "Live",
-      text: "Quotes update instantly while the customer chooses the service, vehicle, and timing.",
-    },
-    {
-      value: `${vehicles.length}`,
-      text: "Vehicle tiers available for discreet executive travel or more celebratory arrivals.",
-    },
-    {
-      value: `${services.length}`,
-      text: "Core service types covering airport, corporate, and special-event transportation.",
-    },
-  ];
 
   function clearFieldError(field) {
     setErrors((currentErrors) => {
@@ -459,30 +472,30 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
     <div className="page-shell min-h-screen overflow-x-hidden text-white">
       <header className="sticky top-0 z-30 border-b border-white/8 bg-[rgba(4,7,13,0.62)] backdrop-blur-xl">
         <div className="limo-container flex min-h-[86px] items-center justify-between gap-6">
-          <a href="#top" aria-label="Anytime, Anywhere home" className="shrink-0">
+          <a href="#top" aria-label={`${brandContent.name || "Anytime, Anywhere"} home`} className="shrink-0">
             <p className="font-display text-[1.8rem] leading-none tracking-[-0.02em] text-white md:text-[2.2rem]">
-              Anytime, Anywhere
+              {brandContent.name}
             </p>
             <p className="mt-1 text-[0.72rem] uppercase tracking-[0.28em] text-white/54">
-              Luxury Limo Service
+              {brandContent.subtitle}
             </p>
           </a>
 
           <nav className="hidden items-center gap-8 text-[0.98rem] text-white/84 lg:flex">
             <a className="nav-link" href="#how-it-works">
-              How It Works
+              {navigationContent.howItWorks}
             </a>
             <a className="nav-link" href="#services">
-              Services
+              {navigationContent.services}
             </a>
             <a className="nav-link" href="#fleet">
-              Fleet
+              {navigationContent.fleet}
             </a>
             <a className="nav-link" href="#reviews">
-              Reviews
+              {navigationContent.reviews}
             </a>
             <a className="nav-link" href="#contact">
-              Contact
+              {navigationContent.contact}
             </a>
           </nav>
 
@@ -490,7 +503,7 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
             href="#booking"
             className="lux-button hidden min-h-14 items-center justify-center rounded-full border border-white/12 bg-white/3 px-7 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/6 md:inline-flex"
           >
-            Reserve Now
+            {navigationContent.reserve}
           </a>
         </div>
       </header>
@@ -499,17 +512,15 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
         <section className="px-5 pb-10 pt-8 md:pb-14 md:pt-12">
           <div className="limo-container grid gap-8 xl:grid-cols-[1.02fr_0.98fr] xl:items-stretch">
             <div className="fade-in py-4 md:py-10">
-              <div className="lux-eyebrow">Chauffeur-level transportation</div>
+              <div className="lux-eyebrow">{heroContent.eyebrow}</div>
               <p className="mt-6 text-[0.92rem] uppercase tracking-[0.28em] text-[var(--accent)]">
-                Executive arrivals. Event-ready entrances.
+                {heroContent.kicker}
               </p>
               <h1 className="mt-7 max-w-[760px] font-display text-[3.4rem] leading-[0.94] tracking-[-0.03em] text-white sm:text-[4.6rem] xl:text-[5.8rem]">
-                Luxury rides that feel calm, exact, and completely handled.
+                {heroContent.title}
               </h1>
               <p className="mt-7 max-w-[680px] text-lg leading-8 text-white/68 md:text-xl">
-                Anytime, Anywhere blends modern online booking with a classic
-                chauffeur experience. Reserve airport transfers, corporate travel,
-                or event transportation with a vehicle that matches the moment.
+                {heroContent.description}
               </p>
 
               <div className="mt-9 flex flex-wrap gap-4">
@@ -517,20 +528,20 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
                   href="#booking"
                   className="lux-button inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--accent)] px-8 text-sm font-bold text-[#11151d] shadow-[0_18px_40px_rgba(210,176,107,0.24)] hover:bg-[var(--accent-dark)]"
                 >
-                  Get Instant Estimate
+                  {heroContent.primaryButtonLabel}
                 </a>
                 <a
                   href="#fleet"
                   className="lux-button inline-flex min-h-14 items-center justify-center rounded-full border border-white/12 bg-white/3 px-8 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/6"
                 >
-                  Explore Fleet
+                  {heroContent.secondaryButtonLabel}
                 </a>
               </div>
 
               <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {heroStats.map((item) => (
+                {heroStats.map((item, index) => (
                   <article
-                    key={item.value}
+                    key={`${item.value}-${index}`}
                     className="glass-panel fade-in soft-lift rounded-[1.8rem] p-6"
                   >
                     <p className="font-display text-5xl leading-none text-white">
@@ -547,21 +558,20 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
             <aside
               id="booking"
               className="booking-panel glass-panel fade-in overflow-hidden rounded-[2rem] p-6 md:p-8"
-              aria-label="Reserve your ride"
+              aria-label={heroContent.bookingEyebrow}
             >
               <div className="relative z-10 flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <p className="lux-section-label">Reserve your ride</p>
+                  <p className="lux-section-label">{heroContent.bookingEyebrow}</p>
                   <h2 className="mt-3 font-display text-[2.25rem] leading-none text-white md:text-[3rem]">
-                    Request a booking
+                    {heroContent.bookingTitle}
                   </h2>
                   <p className="mt-3 max-w-[480px] text-sm leading-7 text-white/64">
-                    Estimate updates instantly as you choose the service, vehicle,
-                    timing, and trip details.
+                    {heroContent.bookingDescription}
                   </p>
                 </div>
                 <div className="rounded-full border border-white/10 bg-white/4 px-4 py-3 text-[0.76rem] uppercase tracking-[0.26em] text-[var(--accent)] shadow-[0_14px_36px_rgba(210,176,107,0.1)]">
-                  Instant quote
+                  {heroContent.bookingPill}
                 </div>
               </div>
 
@@ -604,7 +614,7 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
                       onChange={(event) => updateField("service", event.target.value)}
                       className={fieldClassName}
                     >
-                      {services.map((service) => (
+                      {serviceEntries.map((service) => (
                         <option key={service.id} value={service.id} className="bg-[#101319]">
                           {service.title}
                         </option>
@@ -815,12 +825,10 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
             <div className="proof-panel rounded-[1.8rem] px-6 py-5 md:px-7">
               <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
                 <p className="text-base leading-8 text-white/84">
-                  Airport transfers, executive travel, and special-event service
-                  with live quotes, saved reservations, and a booking experience
-                  that feels polished from the first click.
+                  {proofContent.text}
                 </p>
                 <div className="flex flex-wrap gap-3 lg:justify-end">
-                  {proofChips.map((chip) => (
+                  {(proofContent.chips?.length ? proofContent.chips : proofChips).map((chip) => (
                     <div key={chip} className="proof-chip">
                       {chip}
                     </div>
@@ -833,18 +841,17 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
 
         <section id="how-it-works" className="px-5 py-20 md:py-24">
           <div className="limo-container">
-            <p className="lux-section-label">How it works</p>
+            <p className="lux-section-label">{howItWorksContent.label}</p>
             <h2 className="max-w-[780px] font-display text-[2.6rem] leading-[1.02] text-white md:text-[4.1rem]">
-              A smooth booking flow from quote to curbside pickup.
+              {howItWorksContent.title}
             </h2>
             <p className="mt-5 max-w-[720px] text-lg leading-8 text-white/66">
-              Built for airport runs, executive schedules, and important nights out.
-              Enter the trip, confirm the details, and let the logistics stay handled.
+              {howItWorksContent.description}
             </p>
 
             <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              {howItWorksSteps.map((item) => (
-                <StepCard key={item.step} item={item} />
+              {howItWorksEntries.map((item, index) => (
+                <StepCard key={`${item.step}-${index}`} item={item} />
               ))}
             </div>
           </div>
@@ -852,18 +859,16 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
 
         <section id="services" className="px-5 py-20 md:py-24">
           <div className="limo-container">
-            <p className="lux-section-label">Services</p>
+            <p className="lux-section-label">{servicesSection.label}</p>
             <h2 className="max-w-[820px] font-display text-[2.6rem] leading-[1.02] text-white md:text-[4.1rem]">
-              Transportation built around timing, image, and comfort.
+              {servicesSection.title}
             </h2>
             <p className="mt-5 max-w-[760px] text-lg leading-8 text-white/66">
-              Whether the priority is being early for a flight or making an entrance
-              for a celebration, the experience is designed to feel composed from
-              pickup to drop-off.
+              {servicesSection.description}
             </p>
 
             <div className="mt-10 grid gap-5 xl:grid-cols-3">
-              {services.map((service) => (
+              {serviceEntries.map((service) => (
                 <ServiceCard
                   key={service.id}
                   service={service}
@@ -878,14 +883,13 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
           <div className="limo-container">
             <div className="grid gap-5 lg:grid-cols-[1fr_0.8fr] lg:items-end">
               <div>
-                <p className="lux-section-label">Fleet</p>
+                <p className="lux-section-label">{fleetSection.label}</p>
                 <h2 className="max-w-[820px] font-display text-[2.6rem] leading-[1.02] text-white md:text-[4.1rem]">
-                  Match the vehicle to the occasion.
+                  {fleetSection.title}
                 </h2>
               </div>
               <p className="text-lg leading-8 text-white/66">
-                The fleet is selected to feel polished in motion and confident at the
-                curb, whether the trip is discreet, executive, or more celebratory.
+                {fleetSection.description}
               </p>
             </div>
 
@@ -907,15 +911,15 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
         <section id="reviews" className="px-5 py-20 md:py-24">
           <div className="limo-container">
             <div className="glass-panel rounded-[2.2rem] p-7 md:p-10">
-              <p className="lux-section-label">Client notes</p>
+              <p className="lux-section-label">{reviewsSection.label}</p>
               <h2 className="max-w-[760px] font-display text-[2.6rem] leading-[1.02] text-white md:text-[4.1rem]">
-                A more composed ride changes the whole day.
+                {reviewsSection.title}
               </h2>
 
               <div className="mt-10 grid gap-5 xl:grid-cols-3">
-                {testimonials.map((item) => (
+                {testimonialEntries.map((item, index) => (
                   <article
-                    key={item.name}
+                    key={`${item.name}-${index}`}
                     className="glass-panel soft-lift rounded-[1.8rem] p-7"
                   >
                     <p className="font-display text-5xl leading-none text-[var(--accent)]">
@@ -935,15 +939,14 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
 
         <section id="contact" className="px-5 py-20 md:py-24">
           <div className="limo-container">
-            <p className="lux-section-label">Contact</p>
+            <p className="lux-section-label">{contactSection.label}</p>
             <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
               <div>
                 <h2 className="max-w-[760px] font-display text-[2.6rem] leading-[1.02] text-white md:text-[4.1rem]">
-                  Reserve the next ride with confidence.
+                  {contactSection.title}
                 </h2>
                 <p className="mt-5 max-w-[720px] text-lg leading-8 text-white/66">
-                  From the first quote to the final arrival, the experience is built
-                  to feel clear, elevated, and easy to trust.
+                  {contactSection.description}
                 </p>
 
                 <div className="mt-8 flex flex-wrap gap-4">
@@ -951,42 +954,42 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
                     href="#booking"
                     className="lux-button inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--accent)] px-8 text-sm font-bold text-[#11151d] hover:bg-[var(--accent-dark)]"
                   >
-                    Get Instant Estimate
+                    {contactSection.primaryButtonLabel}
                   </a>
                   <a
-                    href="mailto:bookings@anytimeanywhere.com"
+                    href={`mailto:${contactSection.emailValue}`}
                     className="lux-button inline-flex min-h-14 items-center justify-center rounded-full border border-white/12 bg-white/3 px-8 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/6"
                   >
-                    Contact Us
+                    {contactSection.secondaryButtonLabel}
                   </a>
                 </div>
               </div>
 
               <div className="grid gap-4">
                 <article className="glass-panel soft-lift rounded-[1.8rem] p-6">
-                  <p className="lux-section-label !mb-0 text-[0.7rem]">Concierge line</p>
+                  <p className="lux-section-label !mb-0 text-[0.7rem]">{contactSection.phoneLabel}</p>
                   <a
-                    href="tel:+15550000000"
+                    href={`tel:${String(contactSection.phoneValue ?? "").replace(/\s+/g, "")}`}
                     className="mt-4 block font-display text-[1.9rem] leading-tight text-white"
                   >
-                    (555) 000-0000
+                    {contactSection.phoneValue}
                   </a>
                 </article>
 
                 <article className="glass-panel soft-lift rounded-[1.8rem] p-6">
-                  <p className="lux-section-label !mb-0 text-[0.7rem]">Email</p>
+                  <p className="lux-section-label !mb-0 text-[0.7rem]">{contactSection.emailLabel}</p>
                   <a
-                    href="mailto:bookings@anytimeanywhere.com"
+                    href={`mailto:${contactSection.emailValue}`}
                     className="mt-4 block break-all font-display text-[1.9rem] leading-tight text-white"
                   >
-                    bookings@anytimeanywhere.com
+                    {contactSection.emailValue}
                   </a>
                 </article>
 
                 <article className="glass-panel soft-lift rounded-[1.8rem] p-6">
-                  <p className="lux-section-label !mb-0 text-[0.7rem]">Availability</p>
+                  <p className="lux-section-label !mb-0 text-[0.7rem]">{contactSection.availabilityLabel}</p>
                   <p className="mt-4 font-display text-[1.9rem] leading-tight text-white">
-                    24/7 by reservation for airport, corporate, and event travel.
+                    {contactSection.availabilityValue}
                   </p>
                 </article>
               </div>
@@ -997,20 +1000,20 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
 
       <footer className="border-t border-white/8 px-5 pb-14 pt-7">
         <div className="limo-container flex flex-col gap-3 text-sm text-white/54 md:flex-row md:items-center md:justify-between">
-          <p>Copyright 2026 Anytime, Anywhere. All rights reserved.</p>
+          <p>{footerContent.legal}</p>
           <p>
-            Luxury limo service for airport, corporate, and special event transportation.
+            {footerContent.description}
           </p>
         </div>
       </footer>
 
       <a
-        href="tel:+15550000000"
-        aria-label="Call concierge"
+        href={contactPhoneHref}
+        aria-label={floatingActions.callLabel || "Call concierge"}
         className="floating-link floating-call hidden sm:inline-flex"
       >
         <span className="floating-icon">*</span>
-        Call Concierge
+        {floatingActions.callLabel}
       </a>
 
       <a
@@ -1019,7 +1022,7 @@ export default function AnytimeAnywhereLimoWebsite({ initialCatalog }) {
         className="floating-link floating-action"
       >
         <span className="floating-icon">{"->"}</span>
-        Book Your Ride
+        {floatingActions.bookLabel}
       </a>
     </div>
   );
