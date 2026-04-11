@@ -2,218 +2,19 @@
 
 import { useState } from "react";
 
-const services = [
-  {
-    id: "airport",
-    title: "Airport Transfers",
-    eyebrow: "Precision arrivals",
-    text: "Reliable pickups, curbside coordination, and polished chauffeurs who track flights in real time.",
-  },
-  {
-    id: "corporate",
-    title: "Corporate Travel",
-    eyebrow: "Executive movement",
-    text: "Client-ready vehicles for meetings, roadshows, conferences, and last-minute schedule changes.",
-  },
-  {
-    id: "events",
-    title: "Special Events",
-    eyebrow: "Occasion worthy",
-    text: "Elevated transportation for weddings, proms, galas, birthdays, and nights designed to feel effortless.",
-  },
-];
-
-const fleet = [
-  {
-    name: "Luxury Sedan",
-    capacity: 3,
-    details: "Quiet, tailored comfort for solo travelers, couples, and airport runs.",
-    mood: "Discreet arrival",
-    accent: "from-amber-100/20 via-transparent to-transparent",
-  },
-  {
-    name: "Executive SUV",
-    capacity: 6,
-    details: "A refined premium cabin with extra luggage room and a more commanding presence.",
-    mood: "Most requested",
-    accent: "from-sky-100/18 via-transparent to-transparent",
-  },
-  {
-    name: "Stretch Limo",
-    capacity: 8,
-    details: "A celebratory statement piece for entrances, group nights, and photo-ready moments.",
-    mood: "Signature experience",
-    accent: "from-rose-100/18 via-transparent to-transparent",
-  },
-];
-
-const testimonials = [
-  {
-    name: "Jordan M.",
-    role: "Airport client",
-    quote:
-      "Booking felt polished, the driver was waiting early, and the ride set the tone for the entire trip.",
-  },
-  {
-    name: "Ashley T.",
-    role: "Executive assistant",
-    quote:
-      "We booked a same-day transfer for a client and it still felt white-glove. Fast response, immaculate vehicle.",
-  },
-  {
-    name: "Daniel R.",
-    role: "Event booking",
-    quote:
-      "The limo made the night. It looked premium, arrived on time, and the entire experience felt seamless.",
-  },
-];
-
-const serviceBaseRates = {
-  airport: {
-    "Luxury Sedan": 95,
-    "Executive SUV": 145,
-    "Stretch Limo": 295,
-  },
-  corporate: {
-    "Luxury Sedan": 120,
-    "Executive SUV": 175,
-    "Stretch Limo": 340,
-  },
-  events: {
-    "Luxury Sedan": 155,
-    "Executive SUV": 235,
-    "Stretch Limo": 425,
-  },
-};
-
-const startingRates = fleet.reduce((accumulator, vehicle) => {
-  const values = Object.values(serviceBaseRates).map(
-    (service) => service[vehicle.name],
-  );
-  accumulator[vehicle.name] = Math.min(...values);
-  return accumulator;
-}, {});
-
-const defaultForm = {
-  fullName: "",
-  email: "",
-  phone: "",
-  service: "airport",
-  pickup: "",
-  dropoff: "",
-  date: "",
-  time: "",
-  vehicle: "Executive SUV",
-  passengers: "2",
-  requests: "",
-};
+import {
+  calculateEstimate,
+  defaultForm,
+  fleet,
+  formatCurrency,
+  services,
+  startingRates,
+  testimonials,
+  validateBooking,
+} from "@/lib/booking";
 
 const fieldClassName =
   "w-full rounded-[1.15rem] border border-white/10 bg-white/6 px-4 py-3.5 text-sm text-white outline-none placeholder:text-white/30 focus:border-[var(--accent)] focus:bg-white/8";
-
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function buildDateTime(date, time) {
-  if (!date || !time) {
-    return null;
-  }
-
-  const combined = new Date(`${date}T${time}`);
-  return Number.isNaN(combined.getTime()) ? null : combined;
-}
-
-function calculateEstimate(form) {
-  const vehicle = fleet.find((item) => item.name === form.vehicle) ?? fleet[1];
-  const baseRate = serviceBaseRates[form.service][vehicle.name];
-  const passengers = Number(form.passengers);
-  const extraPassengerCount = Math.max(0, passengers - vehicle.capacity);
-  const passengerAdjustment = extraPassengerCount * 35;
-  const bookingTime = buildDateTime(form.date, form.time);
-  const hour = bookingTime?.getHours() ?? 12;
-  const isWeekend = bookingTime ? [0, 5, 6].includes(bookingTime.getDay()) : false;
-  const afterHoursFee = hour < 6 || hour >= 22 ? 35 : 0;
-  const weekendFee = isWeekend ? 40 : 0;
-  const requestsFee = form.requests.trim() ? 25 : 0;
-  const subtotal = baseRate + passengerAdjustment + afterHoursFee + weekendFee + requestsFee;
-  const gratuity = Math.round(subtotal * 0.18);
-  const total = subtotal + gratuity;
-  const deposit = Math.round(total * 0.2);
-
-  return {
-    baseRate,
-    afterHoursFee,
-    weekendFee,
-    passengerAdjustment,
-    requestsFee,
-    gratuity,
-    total,
-    deposit,
-  };
-}
-
-function validateBooking(form) {
-  const nextErrors = {};
-  const digitsOnlyPhone = form.phone.replace(/\D/g, "");
-  const passengers = Number(form.passengers);
-  const vehicle = fleet.find((item) => item.name === form.vehicle) ?? fleet[1];
-  const bookingTime = buildDateTime(form.date, form.time);
-
-  if (!form.fullName.trim()) {
-    nextErrors.fullName = "Please enter the passenger or contact name.";
-  }
-
-  if (!form.email.trim()) {
-    nextErrors.email = "An email address is required for the booking summary.";
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    nextErrors.email = "Enter a valid email address.";
-  }
-
-  if (digitsOnlyPhone.length < 10) {
-    nextErrors.phone = "Enter a valid phone number.";
-  }
-
-  if (!form.pickup.trim()) {
-    nextErrors.pickup = "Please enter a pickup location.";
-  }
-
-  if (!form.dropoff.trim()) {
-    nextErrors.dropoff = "Please enter a destination.";
-  }
-
-  if (!form.date) {
-    nextErrors.date = "Choose the service date.";
-  }
-
-  if (!form.time) {
-    nextErrors.time = "Choose the pickup time.";
-  }
-
-  if (bookingTime && bookingTime <= new Date()) {
-    nextErrors.time = "Pickup time must be in the future.";
-  }
-
-  if (passengers < 1) {
-    nextErrors.passengers = "Passenger count must be at least 1.";
-  } else if (passengers > vehicle.capacity) {
-    nextErrors.passengers = `Choose a larger vehicle for more than ${vehicle.capacity} passengers.`;
-  }
-
-  return nextErrors;
-}
-
-function createBookingReference(form) {
-  const datePart = form.date ? form.date.replace(/-/g, "").slice(-4) : "0000";
-  const timePart = form.time ? form.time.replace(":", "") : "0000";
-  const phonePart = form.phone.replace(/\D/g, "").slice(-2).padStart(2, "0");
-
-  return `AA-${datePart}-${timePart}-${phonePart}`;
-}
 
 function ServiceCard({ service, onChoose }) {
   return (
@@ -282,7 +83,9 @@ function FleetCard({ vehicle, onChoose }) {
 export default function AnytimeAnywhereLimoWebsite() {
   const [form, setForm] = useState(defaultForm);
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState("");
   const [submittedBooking, setSubmittedBooking] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const estimate = calculateEstimate(form);
   const selectedVehicle = fleet.find((item) => item.name === form.vehicle) ?? fleet[1];
@@ -291,12 +94,7 @@ export default function AnytimeAnywhereLimoWebsite() {
     (_, index) => String(index + 1),
   );
 
-  function updateField(field, value) {
-    setForm((currentForm) => ({
-      ...currentForm,
-      [field]: value,
-    }));
-
+  function clearFieldError(field) {
     setErrors((currentErrors) => {
       if (!currentErrors[field]) {
         return currentErrors;
@@ -306,6 +104,15 @@ export default function AnytimeAnywhereLimoWebsite() {
       delete nextErrors[field];
       return nextErrors;
     });
+  }
+
+  function updateField(field, value) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      [field]: value,
+    }));
+    clearFieldError(field);
+    setSubmitError("");
   }
 
   function updateVehicle(vehicleName) {
@@ -319,11 +126,9 @@ export default function AnytimeAnywhereLimoWebsite() {
       ),
     }));
 
-    setErrors((currentErrors) => {
-      const nextErrors = { ...currentErrors };
-      delete nextErrors.passengers;
-      return nextErrors;
-    });
+    clearFieldError("vehicle");
+    clearFieldError("passengers");
+    setSubmitError("");
   }
 
   function scrollToBooking() {
@@ -340,38 +145,51 @@ export default function AnytimeAnywhereLimoWebsite() {
     scrollToBooking();
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     const nextErrors = validateBooking(form);
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
+      setSubmitError("Please correct the highlighted booking fields.");
       return;
     }
 
-    const bookingTime = buildDateTime(form.date, form.time);
-    const reference = createBookingReference(form);
+    setIsSubmitting(true);
+    setSubmitError("");
 
-    setSubmittedBooking({
-      reference,
-      estimate,
-      fullName: form.fullName,
-      email: form.email,
-      service: services.find((item) => item.id === form.service)?.title ?? "Service",
-      vehicle: form.vehicle,
-      pickup: form.pickup,
-      dropoff: form.dropoff,
-      when: bookingTime?.toLocaleString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-    });
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
 
-    setErrors({});
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setErrors(data.errors ?? {});
+        setSubmitError(
+          data.message ??
+            "We could not save this booking right now. Please try again.",
+        );
+        return;
+      }
+
+      setSubmittedBooking(data.booking);
+      setErrors({});
+      setSubmitError("");
+      setForm(defaultForm);
+    } catch {
+      setSubmitError(
+        "We could not reach the booking service. Check your connection and try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -488,29 +306,37 @@ export default function AnytimeAnywhereLimoWebsite() {
                 </div>
 
                 <div className="rounded-full border border-[var(--line-strong)] bg-white/4 px-3 py-1.5 text-xs uppercase tracking-[0.24em] text-[var(--accent-strong)]">
-                  white-glove response
+                  live booking storage
                 </div>
               </div>
 
               {submittedBooking ? (
                 <div className="mt-6 rounded-[1.6rem] border border-[var(--line-strong)] bg-[linear-gradient(180deg,rgba(209,174,114,0.16),rgba(255,255,255,0.02))] p-5">
                   <p className="text-xs uppercase tracking-[0.3em] text-[var(--accent-strong)]">
-                    Booking request received
+                    Booking saved
                   </p>
                   <h3 className="mt-3 font-display text-3xl text-white">
                     Reference {submittedBooking.reference}
                   </h3>
                   <p className="mt-3 text-sm leading-7 text-white/72">
-                    We have your request for {submittedBooking.service.toLowerCase()} in a{" "}
-                    {submittedBooking.vehicle.toLowerCase()}. A confirmation email can be
-                    sent to {submittedBooking.email}.
+                    We saved your request for {submittedBooking.service.toLowerCase()} in a{" "}
+                    {submittedBooking.vehicle.toLowerCase()}. Follow-up can go to{" "}
+                    {submittedBooking.email}.
                   </p>
                   <div className="mt-5 grid gap-3 text-sm text-white/68 sm:grid-cols-2">
                     <p>Pickup: {submittedBooking.pickup}</p>
                     <p>Drop-off: {submittedBooking.dropoff}</p>
                     <p>When: {submittedBooking.when}</p>
-                    <p>Estimated total: {formatCurrency(submittedBooking.estimate.total)}</p>
+                    <p>
+                      Estimated total: {formatCurrency(submittedBooking.estimate.total)}
+                    </p>
                   </div>
+                </div>
+              ) : null}
+
+              {submitError ? (
+                <div className="mt-6 rounded-[1.4rem] border border-amber-200/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-100">
+                  {submitError}
                 </div>
               ) : null}
 
@@ -529,6 +355,11 @@ export default function AnytimeAnywhereLimoWebsite() {
                         </option>
                       ))}
                     </select>
+                    {errors.service ? (
+                      <span className="mt-2 block text-sm text-amber-200">
+                        {errors.service}
+                      </span>
+                    ) : null}
                   </label>
 
                   <label className="block">
@@ -548,6 +379,11 @@ export default function AnytimeAnywhereLimoWebsite() {
                         </option>
                       ))}
                     </select>
+                    {errors.vehicle ? (
+                      <span className="mt-2 block text-sm text-amber-200">
+                        {errors.vehicle}
+                      </span>
+                    ) : null}
                   </label>
                 </div>
 
@@ -740,9 +576,10 @@ export default function AnytimeAnywhereLimoWebsite() {
 
                 <button
                   type="submit"
-                  className="rounded-full bg-[var(--accent)] px-6 py-4 text-sm font-bold text-[#16110a] shadow-[0_18px_40px_rgba(209,174,114,0.2)] hover:translate-y-[-1px] hover:bg-[var(--accent-strong)]"
+                  disabled={isSubmitting}
+                  className="rounded-full bg-[var(--accent)] px-6 py-4 text-sm font-bold text-[#16110a] shadow-[0_18px_40px_rgba(209,174,114,0.2)] hover:translate-y-[-1px] hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-75 disabled:hover:translate-y-0"
                 >
-                  Request Booking
+                  {isSubmitting ? "Saving booking..." : "Request Booking"}
                 </button>
               </form>
             </aside>
@@ -815,7 +652,9 @@ export default function AnytimeAnywhereLimoWebsite() {
                   key={item.name}
                   className="rounded-[1.7rem] border border-white/8 bg-white/4 p-6"
                 >
-                  <p className="font-display text-4xl text-[var(--accent)]">“</p>
+                  <p className="font-display text-4xl text-[var(--accent)]">
+                    &quot;
+                  </p>
                   <p className="mt-2 text-sm leading-7 text-white/72">{item.quote}</p>
                   <p className="mt-5 text-sm font-semibold text-white">{item.name}</p>
                   <p className="mt-1 text-xs uppercase tracking-[0.24em] text-white/42">
@@ -838,9 +677,9 @@ export default function AnytimeAnywhereLimoWebsite() {
               Reserve the next ride with confidence.
             </h2>
             <p className="mt-5 text-base leading-8 text-white/66">
-              This first version now behaves like a real booking experience on the
-              frontend, with instant estimates and validation. The next layer can add
-              Stripe, email confirmations, and a bookings dashboard.
+              This version now saves bookings through a real backend route. The next
+              layer can add Stripe checkout, confirmation emails, and a private admin
+              dashboard for operators.
             </p>
           </div>
 
