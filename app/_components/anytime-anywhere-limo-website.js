@@ -206,7 +206,10 @@ function AddressAutocompleteField({
                     type="button"
                     onMouseDown={(event) => {
                       event.preventDefault();
-                      onChange(field, suggestion.displayName);
+                      onChange(
+                        field,
+                        suggestion.selectionLabel || suggestion.displayName,
+                      );
                       setSuggestions([]);
                       setIsFocused(false);
                     }}

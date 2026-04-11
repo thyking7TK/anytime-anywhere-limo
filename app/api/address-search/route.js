@@ -5,6 +5,39 @@ export const dynamic = "force-dynamic";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const addressSearchCache = globalThis.__anytimeAnywhereAddressCache ?? new Map();
+const pointOfInterestClasses = new Set([
+  "aeroway",
+  "amenity",
+  "tourism",
+  "leisure",
+  "shop",
+  "office",
+  "railway",
+  "historic",
+  "man_made",
+]);
+const pointOfInterestTypes = new Set([
+  "airport",
+  "aerodrome",
+  "terminal",
+  "restaurant",
+  "cafe",
+  "bar",
+  "pub",
+  "fast_food",
+  "hotel",
+  "motel",
+  "museum",
+  "mall",
+  "supermarket",
+  "station",
+  "bus_station",
+  "attraction",
+  "stadium",
+  "hospital",
+  "university",
+  "theatre",
+]);
 
 if (!globalThis.__anytimeAnywhereAddressCache) {
   globalThis.__anytimeAnywhereAddressCache = addressSearchCache;
@@ -29,28 +62,94 @@ function buildSecondaryText(address = {}) {
     .join(", ");
 }
 
+function getDisplayParts(displayName = "") {
+  return displayName
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function buildStreetLabel(address = {}) {
+  return [
+    address.house_number,
+    address.road ||
+      address.pedestrian ||
+      address.footway ||
+      address.neighbourhood ||
+      address.suburb,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+function hasPlaceName(item, address = {}) {
+  return Boolean(
+    item.name ||
+      item.namedetails?.["name:en"] ||
+      item.namedetails?.name ||
+      address.aeroway ||
+      address.amenity ||
+      address.tourism ||
+      address.leisure ||
+      address.shop ||
+      address.office,
+  );
+}
+
+function isPointOfInterest(item, address, streetLabel, displayParts) {
+  const displayLead = displayParts[0] ?? "";
+
+  return Boolean(
+    pointOfInterestClasses.has(item.class) ||
+      pointOfInterestTypes.has(item.type) ||
+      hasPlaceName(item, address) ||
+      (displayLead && streetLabel && displayLead !== streetLabel),
+  );
+}
+
 function mapSuggestion(item) {
   const address = item.address ?? {};
-  const primaryText =
-    [
-      address.house_number,
-      address.road ||
-        address.pedestrian ||
-        address.footway ||
-        address.neighbourhood ||
-        address.suburb,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .trim() ||
+  const displayParts = getDisplayParts(item.display_name);
+  const streetLabel = buildStreetLabel(address);
+  const placeName =
     item.name ||
+    item.namedetails?.["name:en"] ||
+    item.namedetails?.name ||
+    address.aeroway ||
+    address.amenity ||
+    address.tourism ||
+    address.leisure ||
+    address.shop ||
+    address.office ||
+    displayParts[0] ||
     item.display_name;
+  const usePlaceName = isPointOfInterest(
+    item,
+    address,
+    streetLabel,
+    displayParts,
+  );
+  const primaryText = usePlaceName
+    ? placeName
+    : streetLabel || displayParts[0] || item.display_name;
+  const secondaryText =
+    displayParts
+      .filter((part) => part !== primaryText)
+      .slice(0, 3)
+      .join(", ") || buildSecondaryText(address);
+  const selectionLabel = usePlaceName
+    ? primaryText
+    : [streetLabel || primaryText, buildSecondaryText(address)]
+        .filter(Boolean)
+        .join(", ");
 
   return {
     id: String(item.place_id),
     displayName: item.display_name,
     primaryText,
-    secondaryText: buildSecondaryText(address),
+    secondaryText,
+    selectionLabel,
     latitude: item.lat,
     longitude: item.lon,
   };
@@ -69,6 +168,7 @@ export async function GET(request) {
   const upstream = new URL("https://nominatim.openstreetmap.org/search");
   upstream.searchParams.set("format", "jsonv2");
   upstream.searchParams.set("addressdetails", "1");
+  upstream.searchParams.set("namedetails", "1");
   upstream.searchParams.set("limit", "5");
   upstream.searchParams.set("q", query);
 
