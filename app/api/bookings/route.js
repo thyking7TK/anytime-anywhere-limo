@@ -4,13 +4,14 @@ import { NextResponse } from "next/server";
 import {
   buildRideLocalTimestamp,
   calculateEstimate,
-  formatRideTime,
+  formatRideLocalTimestamp,
   getServiceById,
   normalizeBookingForm,
   validateBooking,
 } from "@/lib/booking";
 import { insertBooking, listRecentBookings } from "@/lib/bookings";
 import { isDatabaseConfigured } from "@/lib/database";
+import { sendBookingEmails } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +21,11 @@ function createReference() {
 }
 
 function formatStoredBooking(record) {
+  const rideLocalValue =
+    typeof record.ride_local_at === "string"
+      ? record.ride_local_at.replace(" ", "T")
+      : undefined;
+
   return {
     id: record.id,
     reference: record.reference,
@@ -36,7 +42,9 @@ function formatStoredBooking(record) {
     estimatedTotal: Math.round(record.estimated_total_cents / 100),
     estimatedDeposit: Math.round(record.estimated_deposit_cents / 100),
     status: record.status,
-    when: formatRideTime(new Date(record.ride_local_at)),
+    when:
+      formatRideLocalTimestamp(rideLocalValue) ||
+      String(record.ride_local_at ?? ""),
     createdAt: record.created_at,
   };
 }
@@ -93,6 +101,20 @@ export async function POST(request) {
   const estimate = calculateEstimate(form);
   const rideLocalAt = buildRideLocalTimestamp(form.date, form.time);
   const reference = createReference();
+  const bookingForNotifications = {
+    reference,
+    estimate,
+    fullName: form.fullName,
+    email: form.email,
+    phone: form.phone,
+    service: form.service,
+    vehicle: form.vehicle,
+    pickup: form.pickup,
+    dropoff: form.dropoff,
+    rideLocalAt,
+    passengers: Number(form.passengers),
+    requests: form.requests,
+  };
 
   try {
     await insertBooking({
@@ -123,6 +145,18 @@ export async function POST(request) {
     );
   }
 
+  let emailStatus = {
+    enabled: false,
+    admin: "skipped",
+    customer: "skipped",
+  };
+
+  try {
+    emailStatus = await sendBookingEmails(bookingForNotifications);
+  } catch (error) {
+    console.error("Failed to send booking emails", error);
+  }
+
   return NextResponse.json(
     {
       booking: {
@@ -134,8 +168,9 @@ export async function POST(request) {
         vehicle: form.vehicle,
         pickup: form.pickup,
         dropoff: form.dropoff,
-        when: formatRideTime(new Date(rideLocalAt)),
+        when: formatRideLocalTimestamp(rideLocalAt),
       },
+      emailStatus,
     },
     { status: 201 },
   );

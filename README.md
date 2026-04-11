@@ -29,6 +29,34 @@ For Vercel, the simplest production setup is:
 
 The `bookings` table is created automatically on the first successful booking write.
 
+## Booking emails
+
+Booking emails are sent after a booking is successfully saved.
+
+Required environment variables for admin alerts:
+
+- `RESEND_API_KEY`
+- `BOOKING_NOTIFICATION_EMAIL`
+
+Optional email variables:
+
+- `BOOKING_FROM_EMAIL`
+- `BOOKING_REPLY_TO_EMAIL`
+- `BOOKING_SEND_CUSTOMER_CONFIRMATIONS`
+
+Recommended setup:
+
+1. Create a Resend account.
+2. Add and verify a sending domain in Resend.
+3. Add the variables above in Vercel project settings.
+4. Redeploy the project.
+
+Notes:
+
+- If `BOOKING_NOTIFICATION_EMAIL` is set, the app sends an admin alert for each saved booking.
+- If `BOOKING_SEND_CUSTOMER_CONFIRMATIONS=true`, the app also sends a customer confirmation email.
+- Without a verified domain, Resend test sending is limited. Use a verified domain before turning on customer confirmations.
+
 ## Optional admin access
 
 If you set `BOOKINGS_ADMIN_KEY`, you can fetch recent bookings from:
