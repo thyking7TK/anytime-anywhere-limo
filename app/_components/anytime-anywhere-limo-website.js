@@ -1,7 +1,7 @@
 ﻿"use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   calculateEstimate,
@@ -50,6 +50,7 @@ const proofChips = [
   "24/7 reservations",
   "Professional chauffeurs",
 ];
+const primarySectionIds = ["how-it-works", "services", "fleet", "reviews", "contact"];
 
 function ServiceCard({ service, onChoose }) {
   return (
@@ -363,6 +364,14 @@ export default function AnytimeAnywhereLimoWebsite({
   const [submitError, setSubmitError] = useState("");
   const [submittedBooking, setSubmittedBooking] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeNavSection, setActiveNavSection] = useState("");
+  const navItems = [
+    ["how-it-works", navigationContent.howItWorks],
+    ["services", navigationContent.services],
+    ["fleet", navigationContent.fleet],
+    ["reviews", navigationContent.reviews],
+    ["contact", navigationContent.contact],
+  ];
 
   const estimate = calculateEstimate(form, catalog);
   const selectedVehicle = getVehicleBySlug(form.vehicle, catalog) ?? vehicles[0] ?? null;
@@ -417,6 +426,38 @@ export default function AnytimeAnywhereLimoWebsite({
       block: "start",
     });
   }
+
+  useEffect(() => {
+    const sections = primarySectionIds
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+
+    if (!sections.length) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((entryA, entryB) => entryB.intersectionRatio - entryA.intersectionRatio);
+
+        if (visibleEntries[0]?.target?.id) {
+          setActiveNavSection(visibleEntries[0].target.id);
+        }
+      },
+      {
+        rootMargin: "-24% 0px -52% 0px",
+        threshold: [0.2, 0.35, 0.5, 0.7],
+      },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   function handleServicePick(serviceId) {
     updateField("service", serviceId);
@@ -491,22 +532,18 @@ export default function AnytimeAnywhereLimoWebsite({
             </p>
           </a>
 
-          <nav className="hidden items-center gap-8 text-[0.98rem] text-white/84 lg:flex">
-            <a className="nav-link" href="#how-it-works">
-              {navigationContent.howItWorks}
-            </a>
-            <a className="nav-link" href="#services">
-              {navigationContent.services}
-            </a>
-            <a className="nav-link" href="#fleet">
-              {navigationContent.fleet}
-            </a>
-            <a className="nav-link" href="#reviews">
-              {navigationContent.reviews}
-            </a>
-            <a className="nav-link" href="#contact">
-              {navigationContent.contact}
-            </a>
+          <nav className="hidden items-center gap-3 text-[0.98rem] text-white/84 lg:flex">
+            {navItems.map(([id, label]) => (
+              <a
+                key={id}
+                className={`nav-link ${activeNavSection === id ? "is-active" : ""}`}
+                href={`#${id}`}
+                onClick={() => setActiveNavSection(id)}
+                aria-current={activeNavSection === id ? "page" : undefined}
+              >
+                <span>{label}</span>
+              </a>
+            ))}
           </nav>
 
           <a

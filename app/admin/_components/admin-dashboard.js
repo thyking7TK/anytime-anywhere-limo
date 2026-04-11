@@ -1,7 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { upload } from "@vercel/blob/client";
 import { useCallback, useEffect, useState } from "react";
 
 import { formatCurrency } from "@/lib/booking";
@@ -62,17 +61,6 @@ function normalizeDecimalInput(value, fallback = 0, min = 0, max = 1) {
   }
 
   return Math.min(max, Math.max(min, number));
-}
-
-function sanitizeFilename(filename) {
-  const safeName = String(filename ?? "vehicle-image")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  return safeName || `vehicle-image-${Date.now()}.jpg`;
 }
 
 function createEmptyVehicle(index = 0) {
@@ -505,23 +493,35 @@ export default function AdminDashboard() {
     );
 
     try {
-      const uploadedImages = await Promise.all(
-        files.slice(0, remainingSlots).map(async (file) => {
-          const blob = await upload(
-            `vehicle-images/${vehicle.slug}/${sanitizeFilename(file.name)}`,
-            file,
-            {
-              access: "public",
-              handleUploadUrl: "/api/admin/vehicle-images",
-              headers: { "x-admin-key": adminKey },
-              clientPayload: JSON.stringify({ vehicleSlug: vehicle.slug }),
-              multipart: file.size > 4_000_000,
-            },
-          );
+      const formData = new FormData();
 
-          return blob.url;
-        }),
-      );
+      formData.append("vehicleSlug", vehicle.slug);
+
+      files.slice(0, remainingSlots).forEach((file) => {
+        formData.append("files", file);
+      });
+
+      const response = await fetch("/api/admin/vehicle-images", {
+        method: "POST",
+        headers: { "x-admin-key": adminKey },
+        body: formData,
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Could not upload vehicle photos right now.",
+        );
+      }
+
+      const uploadedImages = Array.isArray(data.uploads)
+        ? data.uploads.map((uploadEntry) => uploadEntry?.url).filter(Boolean)
+        : [];
+
+      if (!uploadedImages.length) {
+        throw new Error("The upload finished without returning any image URLs.");
+      }
 
       appendVehicleImages(index, uploadedImages);
       setCatalogMessage("Vehicle photos uploaded. Save the fleet section to publish them.");
