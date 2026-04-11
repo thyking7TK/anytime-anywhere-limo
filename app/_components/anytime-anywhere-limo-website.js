@@ -320,20 +320,20 @@ export default function AnytimeAnywhereLimoWebsite({
 }) {
   const catalog = initialCatalog ?? getDefaultCatalog();
   const siteContent = initialSiteContent ?? getDefaultSiteContent();
-  const vehicles = catalog.vehicles?.length ? catalog.vehicles : fleet;
-  const serviceEntries = siteContent.services?.length ? siteContent.services : services;
-  const testimonialEntries =
-    siteContent.testimonials?.length ? siteContent.testimonials : testimonials;
-  const heroStats =
-    siteContent.heroStats?.length ? siteContent.heroStats : [
-      {
-        value: "24/7",
-        text: "Reservation support for early departures, late arrivals, and schedule-sensitive rides.",
-      },
-    ];
+  const vehicles = Array.isArray(catalog.vehicles) ? catalog.vehicles : fleet;
+  const serviceEntries = Array.isArray(siteContent.services)
+    ? siteContent.services
+    : services;
+  const testimonialEntries = Array.isArray(siteContent.testimonials)
+    ? siteContent.testimonials
+    : testimonials;
+  const heroStats = Array.isArray(siteContent.heroStats)
+    ? siteContent.heroStats
+    : [];
   const howItWorksContent = siteContent.howItWorks ?? {};
-  const howItWorksEntries =
-    howItWorksContent.steps?.length ? howItWorksContent.steps : howItWorksSteps;
+  const howItWorksEntries = Array.isArray(howItWorksContent.steps)
+    ? howItWorksContent.steps
+    : howItWorksSteps;
   const proofContent = siteContent.proof ?? {};
   const heroContent = siteContent.hero ?? {};
   const brandContent = siteContent.brand ?? {};
@@ -344,13 +344,20 @@ export default function AnytimeAnywhereLimoWebsite({
   const contactSection = siteContent.contactSection ?? {};
   const footerContent = siteContent.footer ?? {};
   const floatingActions = siteContent.floatingActions ?? {};
+  const visibleProofChips = Array.isArray(proofContent.chips)
+    ? proofContent.chips.filter((chip) => String(chip ?? "").trim())
+    : proofChips;
+  const hasVehicles = vehicles.length > 0;
+  const vehicleAvailabilityMessage = hasVehicles
+    ? ""
+    : "Vehicles are currently being updated. Booking is temporarily unavailable.";
   const contactPhoneHref = `tel:${String(
     contactSection.phoneValue ?? "",
   ).replace(/[^+\d]/g, "")}`;
   const startingRates = computeStartingRates(catalog);
   const [form, setForm] = useState(() => ({
     ...defaultForm,
-    vehicle: vehicles[0]?.slug ?? defaultForm.vehicle,
+    vehicle: vehicles[0]?.slug ?? "",
   }));
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
@@ -358,11 +365,10 @@ export default function AnytimeAnywhereLimoWebsite({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const estimate = calculateEstimate(form, catalog);
-  const selectedVehicle = getVehicleBySlug(form.vehicle, catalog) ?? vehicles[0];
-  const passengerOptions = Array.from(
-    { length: selectedVehicle.capacity },
-    (_, index) => String(index + 1),
-  );
+  const selectedVehicle = getVehicleBySlug(form.vehicle, catalog) ?? vehicles[0] ?? null;
+  const passengerOptions = selectedVehicle
+    ? Array.from({ length: selectedVehicle.capacity }, (_, index) => String(index + 1))
+    : ["1"];
 
   function clearFieldError(field) {
     setErrors((currentErrors) => {
@@ -386,7 +392,11 @@ export default function AnytimeAnywhereLimoWebsite({
   }
 
   function updateVehicle(vehicleSlug) {
-    const nextVehicle = getVehicleBySlug(vehicleSlug, catalog) ?? vehicles[0];
+    const nextVehicle = getVehicleBySlug(vehicleSlug, catalog) ?? vehicles[0] ?? null;
+
+    if (!nextVehicle) {
+      return;
+    }
 
     setForm((currentForm) => ({
       ...currentForm,
@@ -457,7 +467,7 @@ export default function AnytimeAnywhereLimoWebsite({
       setSubmitError("");
       setForm({
         ...defaultForm,
-        vehicle: vehicles[0]?.slug ?? defaultForm.vehicle,
+        vehicle: vehicles[0]?.slug ?? "",
       });
     } catch {
       setSubmitError(
@@ -605,6 +615,12 @@ export default function AnytimeAnywhereLimoWebsite({
                 </div>
               ) : null}
 
+              {vehicleAvailabilityMessage ? (
+                <div className="relative z-10 mt-6 rounded-[1.4rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/72">
+                  {vehicleAvailabilityMessage}
+                </div>
+              ) : null}
+
               <form onSubmit={handleSubmit} className="relative z-10 mt-6">
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="block">
@@ -632,13 +648,20 @@ export default function AnytimeAnywhereLimoWebsite({
                     <select
                       value={form.vehicle}
                       onChange={(event) => updateVehicle(event.target.value)}
+                      disabled={!hasVehicles}
                       className={fieldClassName}
                     >
-                      {vehicles.map((vehicle) => (
-                        <option key={vehicle.slug} value={vehicle.slug} className="bg-[#101319]">
-                          {vehicle.name}
+                      {hasVehicles ? (
+                        vehicles.map((vehicle) => (
+                          <option key={vehicle.slug} value={vehicle.slug} className="bg-[#101319]">
+                            {vehicle.name}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="" className="bg-[#101319]">
+                          No vehicles available
                         </option>
-                      ))}
+                      )}
                     </select>
                     {errors.vehicle ? (
                       <span className="mt-2 block text-sm text-amber-200">
@@ -700,6 +723,7 @@ export default function AnytimeAnywhereLimoWebsite({
                     <select
                       value={form.passengers}
                       onChange={(event) => updateField("passengers", event.target.value)}
+                      disabled={!selectedVehicle}
                       className={fieldClassName}
                     >
                       {passengerOptions.map((count) => (
@@ -810,10 +834,14 @@ export default function AnytimeAnywhereLimoWebsite({
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !hasVehicles}
                   className="lux-button mt-5 inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#11151d] shadow-[0_18px_42px_rgba(210,176,107,0.22)] hover:bg-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-75"
                 >
-                  {isSubmitting ? "Saving booking..." : "Request Booking"}
+                  {isSubmitting
+                    ? "Saving booking..."
+                    : hasVehicles
+                      ? "Request Booking"
+                      : "Booking unavailable"}
                 </button>
               </form>
             </aside>
@@ -828,7 +856,7 @@ export default function AnytimeAnywhereLimoWebsite({
                   {proofContent.text}
                 </p>
                 <div className="flex flex-wrap gap-3 lg:justify-end">
-                  {(proofContent.chips?.length ? proofContent.chips : proofChips).map((chip) => (
+                  {visibleProofChips.map((chip) => (
                     <div key={chip} className="proof-chip">
                       {chip}
                     </div>
@@ -905,6 +933,12 @@ export default function AnytimeAnywhereLimoWebsite({
                 />
               ))}
             </div>
+
+            {!hasVehicles ? (
+              <p className="mt-8 text-sm leading-7 text-white/56">
+                No vehicles are currently available for booking.
+              </p>
+            ) : null}
           </div>
         </section>
 

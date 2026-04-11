@@ -19,6 +19,13 @@ function validateCatalogPayload(payload = {}) {
     errors.push("Add at least one vehicle.");
   }
 
+  const activeVehicleCount = vehicles.filter((vehicle) => Boolean(vehicle?.active))
+    .length;
+
+  if (activeVehicleCount === 0) {
+    errors.push("Keep at least one active vehicle on the live site.");
+  }
+
   const seenSlugs = new Set();
 
   for (const vehicle of vehicles) {
