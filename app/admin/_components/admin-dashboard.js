@@ -69,6 +69,7 @@ function createEmptyVehicle(index = 0) {
     name: "",
     capacity: 2,
     description: "",
+    bestFor: "",
     mood: "",
     accent: "from-white/10 via-transparent to-transparent",
     imageUrls: [],
@@ -1001,6 +1002,17 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5">
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <TextField label="Success badge" value={siteContent.bookingUi.successLabel} onChange={(event) => updateSiteSection("bookingUi", "successLabel", event.target.value)} />
+                      <TextField label="Submit button label" value={siteContent.bookingUi.submitButtonLabel} onChange={(event) => updateSiteSection("bookingUi", "submitButtonLabel", event.target.value)} />
+                      <TextField label="Unavailable button label" value={siteContent.bookingUi.unavailableButtonLabel} onChange={(event) => updateSiteSection("bookingUi", "unavailableButtonLabel", event.target.value)} />
+                      <TextAreaField label="Pricing note" rows={4} className="lg:col-span-2" value={siteContent.bookingUi.pricingNote} onChange={(event) => updateSiteSection("bookingUi", "pricingNote", event.target.value)} />
+                      <TextAreaField label="Booking unavailable message" rows={3} value={siteContent.bookingUi.unavailableMessage} onChange={(event) => updateSiteSection("bookingUi", "unavailableMessage", event.target.value)} />
+                      <TextAreaField label="Fleet empty-state message" rows={3} value={siteContent.bookingUi.unavailableFleetMessage} onChange={(event) => updateSiteSection("bookingUi", "unavailableFleetMessage", event.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="text-sm text-white/60">Hero stats under the headline</p>
                       <button type="button" onClick={() => mutateSiteContent((next) => { if (next.heroStats.length < 6) next.heroStats.push(createEmptyHeroStat(next.heroStats.length)); })} className={buttonClassName}>Add stat</button>
@@ -1164,6 +1176,18 @@ export default function AdminDashboard() {
                 }
               >
                 <div className="grid gap-6">
+                  <div className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-sm text-white/60">Fleet section copy on the homepage</p>
+                      {renderSiteContentAction()}
+                    </div>
+                    <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                      <TextField label="Fleet section label" value={siteContent.fleetSection.label} onChange={(event) => updateSiteSection("fleetSection", "label", event.target.value)} />
+                      <TextAreaField label="Fleet section title" rows={3} className="lg:col-span-2" value={siteContent.fleetSection.title} onChange={(event) => updateSiteSection("fleetSection", "title", event.target.value)} />
+                      <TextAreaField label="Fleet section description" rows={4} className="lg:col-span-2" value={siteContent.fleetSection.description} onChange={(event) => updateSiteSection("fleetSection", "description", event.target.value)} />
+                    </div>
+                  </div>
+
                   <div className="grid gap-4 xl:grid-cols-2">
                     {catalog.vehicles.map((vehicle, index) => (
                       <article key={vehicle.slug} className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5">
@@ -1183,6 +1207,7 @@ export default function AdminDashboard() {
                           <TextField label="Name" value={vehicle.name} onChange={(event) => updateVehicle(index, "name", event.target.value)} />
                           <TextField label="Capacity" type="number" value={vehicle.capacity} onChange={(event) => updateVehicle(index, "capacity", event.target.value)} />
                           <TextAreaField label="Description" rows={4} className="sm:col-span-2" value={vehicle.description} onChange={(event) => updateVehicle(index, "description", event.target.value)} />
+                          <TextField label="Best for" value={vehicle.bestFor ?? ""} onChange={(event) => updateVehicle(index, "bestFor", event.target.value)} />
                           <TextField label="Mood tag" value={vehicle.mood} onChange={(event) => updateVehicle(index, "mood", event.target.value)} />
                           <TextField label="Accent class" value={vehicle.accent} onChange={(event) => updateVehicle(index, "accent", event.target.value)} />
                           <label className="inline-flex items-center gap-3 rounded-[1rem] border border-white/8 bg-white/4 px-4 py-3 text-sm text-white/74 sm:col-span-2">

@@ -148,7 +148,9 @@ function FleetCard({ vehicle, onChoose }) {
 
       <div className="mt-6 border-t border-white/10 pt-5 text-sm text-white/68">
         <p>Seats: {vehicle.capacity}</p>
-        <p className="mt-2">Best for: airport, corporate, and event travel</p>
+        <p className="mt-2">
+          Best for: {vehicle.bestFor || "airport, corporate, and event travel"}
+        </p>
       </div>
 
       <button
@@ -345,13 +347,14 @@ export default function AnytimeAnywhereLimoWebsite({
   const contactSection = siteContent.contactSection ?? {};
   const footerContent = siteContent.footer ?? {};
   const floatingActions = siteContent.floatingActions ?? {};
+  const bookingUi = siteContent.bookingUi ?? {};
   const visibleProofChips = Array.isArray(proofContent.chips)
     ? proofContent.chips.filter((chip) => String(chip ?? "").trim())
     : proofChips;
   const hasVehicles = vehicles.length > 0;
   const vehicleAvailabilityMessage = hasVehicles
     ? ""
-    : "Vehicles are currently being updated. Booking is temporarily unavailable.";
+    : bookingUi.unavailableMessage;
   const contactPhoneHref = `tel:${String(
     contactSection.phoneValue ?? "",
   ).replace(/[^+\d]/g, "")}`;
@@ -625,7 +628,7 @@ export default function AnytimeAnywhereLimoWebsite({
               {submittedBooking ? (
                 <div className="relative z-10 mt-6 rounded-[1.7rem] border border-[var(--line-strong)] bg-[linear-gradient(180deg,rgba(210,176,107,0.14),rgba(255,255,255,0.02))] p-5">
                   <p className="text-xs uppercase tracking-[0.3em] text-[var(--accent-strong)]">
-                    Booking saved
+                    {bookingUi.successLabel}
                   </p>
                   <h3 className="mt-3 font-display text-[2rem] text-white">
                     Reference {submittedBooking.reference}
@@ -863,9 +866,7 @@ export default function AnytimeAnywhereLimoWebsite({
                   </div>
 
                   <p className="mt-4 text-sm leading-7 text-white/48">
-                    Instant quote is a starting estimate based on service type,
-                    vehicle, timing, and party size. Final pricing can shift for
-                    distance, waiting time, tolls, or custom itinerary details.
+                    {bookingUi.pricingNote}
                   </p>
                 </div>
 
@@ -877,8 +878,8 @@ export default function AnytimeAnywhereLimoWebsite({
                   {isSubmitting
                     ? "Saving booking..."
                     : hasVehicles
-                      ? "Request Booking"
-                      : "Booking unavailable"}
+                      ? bookingUi.submitButtonLabel
+                      : bookingUi.unavailableButtonLabel}
                 </button>
               </form>
             </aside>
@@ -973,7 +974,7 @@ export default function AnytimeAnywhereLimoWebsite({
 
             {!hasVehicles ? (
               <p className="mt-8 text-sm leading-7 text-white/56">
-                No vehicles are currently available for booking.
+                {bookingUi.unavailableFleetMessage}
               </p>
             ) : null}
           </div>
