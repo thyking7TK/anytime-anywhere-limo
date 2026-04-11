@@ -3,6 +3,7 @@ import { getCatalog } from "@/lib/catalog";
 import { getSiteContent } from "@/lib/site-content";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function Home() {
   const [catalog, siteContent] = await Promise.all([

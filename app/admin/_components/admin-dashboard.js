@@ -185,6 +185,7 @@ export default function AdminDashboard() {
   const [siteContent, setSiteContent] = useState(getDefaultSiteContent);
   const [savingCatalog, setSavingCatalog] = useState(false);
   const [savingSiteContent, setSavingSiteContent] = useState(false);
+  const [savingAllChanges, setSavingAllChanges] = useState(false);
   const [catalogMessage, setCatalogMessage] = useState("");
   const [siteMessage, setSiteMessage] = useState("");
   const [bookingMessage, setBookingMessage] = useState("");
@@ -557,8 +558,10 @@ export default function AdminDashboard() {
       setSiteContent(data.siteContent ?? getDefaultSiteContent());
       await loadDashboard(adminKey);
       setSiteMessage("Homepage content saved.");
+      return true;
     } catch (error) {
       setSiteMessage(error.message || "Could not save the CMS content.");
+      return false;
     } finally {
       setSavingSiteContent(false);
     }
@@ -566,7 +569,7 @@ export default function AdminDashboard() {
 
   async function saveCatalog() {
     if (!catalog) {
-      return;
+      return false;
     }
 
     setSavingCatalog(true);
@@ -598,11 +601,29 @@ export default function AdminDashboard() {
       setCatalog(data.catalog);
       await loadDashboard(adminKey);
       setCatalogMessage("Fleet and pricing saved.");
+      return true;
     } catch (error) {
       setCatalogMessage(error.message || "Could not save the catalog.");
+      return false;
     } finally {
       setSavingCatalog(false);
     }
+  }
+
+  async function saveAllChanges() {
+    setSavingAllChanges(true);
+    setBookingMessage("");
+
+    const siteSaved = await saveSiteContent();
+    const catalogSaved = await saveCatalog();
+
+    if (siteSaved && catalogSaved) {
+      setBookingMessage("Everything is saved and pushed to the live site.");
+    } else if (siteSaved || catalogSaved) {
+      setBookingMessage("Part of the dashboard saved. Check the notes above for anything that still needs attention.");
+    }
+
+    setSavingAllChanges(false);
   }
 
   async function changeBookingStatus(bookingId, status) {
@@ -684,6 +705,18 @@ export default function AdminDashboard() {
           ),
         )
       : 0;
+  function renderSiteContentAction() {
+    return (
+      <button
+        type="button"
+        onClick={saveSiteContent}
+        disabled={savingSiteContent || savingAllChanges}
+        className={primaryButtonClassName}
+      >
+        {savingSiteContent ? "Saving content..." : "Save homepage content"}
+      </button>
+    );
+  }
 
   return (
     <div className="min-h-screen px-4 py-6 text-white md:px-6 xl:px-8">
@@ -791,21 +824,35 @@ export default function AdminDashboard() {
               <div className="mt-6 grid gap-3">
                 <button
                   type="button"
-                  onClick={saveSiteContent}
-                  disabled={savingSiteContent}
+                  onClick={saveAllChanges}
+                  disabled={savingAllChanges || savingSiteContent || savingCatalog}
                   className={primaryButtonClassName}
                 >
-                  {savingSiteContent ? "Saving content..." : "Save site content"}
+                  {savingAllChanges ? "Saving everything..." : "Save everything"}
+                </button>
+                <button
+                  type="button"
+                  onClick={saveSiteContent}
+                  disabled={savingSiteContent || savingAllChanges}
+                  className={primaryButtonClassName}
+                >
+                  {savingSiteContent ? "Saving content..." : "Save homepage content only"}
                 </button>
                 <button
                   type="button"
                   onClick={saveCatalog}
-                  disabled={savingCatalog}
+                  disabled={savingCatalog || savingAllChanges}
                   className={buttonClassName}
                 >
-                  {savingCatalog ? "Saving fleet..." : "Save fleet & pricing"}
+                  {savingCatalog ? "Saving fleet..." : "Save vehicles & pricing only"}
                 </button>
               </div>
+
+              <p className="mt-4 text-xs leading-6 text-white/52">
+                Hero text, services, testimonials, contact details, and footer edits use
+                homepage content save. Vehicles, photos, and pricing use the fleet save.
+                Save everything handles both together.
+              </p>
 
               {siteMessage ? <p className="mt-4 text-sm text-[var(--accent-strong)]">{siteMessage}</p> : null}
               {catalogMessage ? <p className="mt-2 text-sm text-[var(--accent-strong)]">{catalogMessage}</p> : null}
@@ -908,7 +955,7 @@ export default function AdminDashboard() {
                 </div>
               </Section>
 
-              <Section id="brand-hero" label="Homepage CMS" title="Brand, navigation, and hero">
+              <Section id="brand-hero" label="Homepage CMS" title="Brand, navigation, and hero" actions={renderSiteContentAction()}>
                 <div className="grid gap-6">
                   <div className="grid gap-4 lg:grid-cols-2">
                     <TextField label="Brand name" value={siteContent.brand.name} onChange={(event) => updateSiteSection("brand", "name", event.target.value)} />
@@ -973,7 +1020,7 @@ export default function AdminDashboard() {
                 </div>
               </Section>
 
-              <Section id="homepage-flow" label="Homepage CMS" title="Proof bar and how-it-works">
+              <Section id="homepage-flow" label="Homepage CMS" title="Proof bar and how-it-works" actions={renderSiteContentAction()}>
                 <div className="grid gap-6">
                   <div className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5">
                     <TextAreaField label="Proof text" rows={4} value={siteContent.proof.text} onChange={(event) => updateSiteSection("proof", "text", event.target.value)} />
@@ -1019,7 +1066,7 @@ export default function AdminDashboard() {
                 </div>
               </Section>
 
-              <Section id="services-reviews" label="Homepage CMS" title="Services and reviews">
+              <Section id="services-reviews" label="Homepage CMS" title="Services and reviews" actions={renderSiteContentAction()}>
                 <div className="grid gap-6">
                   <div className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5">
                     <div className="grid gap-4 lg:grid-cols-2">
@@ -1065,7 +1112,7 @@ export default function AdminDashboard() {
                 </div>
               </Section>
 
-              <Section id="contact-footer" label="Homepage CMS" title="Contact and footer">
+              <Section id="contact-footer" label="Homepage CMS" title="Contact and footer" actions={renderSiteContentAction()}>
                 <div className="grid gap-6">
                   <div className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5">
                     <div className="grid gap-4 lg:grid-cols-2">

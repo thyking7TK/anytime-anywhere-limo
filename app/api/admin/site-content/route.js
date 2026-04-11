@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import { isAuthorizedRequest } from "@/lib/admin-auth";
 import { getSiteContent, saveSiteContent } from "@/lib/site-content";
@@ -52,6 +53,9 @@ export async function PUT(request) {
 
   try {
     const siteContent = await saveSiteContent(payload);
+    revalidatePath("/");
+    revalidatePath("/admin");
+    revalidatePath("/api/site-content");
     return NextResponse.json({ siteContent });
   } catch (error) {
     console.error("Failed to save site content", error);

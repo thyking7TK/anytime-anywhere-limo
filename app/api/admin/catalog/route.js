@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import { isAuthorizedRequest } from "@/lib/admin-auth";
 import { getCatalog, saveCatalog } from "@/lib/catalog";
@@ -155,6 +156,9 @@ export async function PUT(request) {
 
   try {
     const catalog = await saveCatalog(payload);
+    revalidatePath("/");
+    revalidatePath("/admin");
+    revalidatePath("/api/catalog");
     return NextResponse.json({ catalog });
   } catch (error) {
     console.error("Failed to save admin catalog", error);
