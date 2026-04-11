@@ -39,6 +39,14 @@ const pointOfInterestTypes = new Set([
   "theatre",
 ]);
 
+function normalizeText(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function isNumericLikeLabel(value) {
+  return /^\d+[a-zA-Z-]?$/.test(String(value ?? "").trim());
+}
+
 if (!globalThis.__anytimeAnywhereAddressCache) {
   globalThis.__anytimeAnywhereAddressCache = addressSearchCache;
 }
@@ -83,28 +91,54 @@ function buildStreetLabel(address = {}) {
     .trim();
 }
 
-function hasPlaceName(item, address = {}) {
-  return Boolean(
-    item.name ||
-      item.namedetails?.["name:en"] ||
-      item.namedetails?.name ||
-      address.aeroway ||
-      address.amenity ||
-      address.tourism ||
-      address.leisure ||
-      address.shop ||
-      address.office,
-  );
+function getCandidatePlaceName(item, address = {}, streetLabel = "", displayParts = []) {
+  const candidates = [
+    item.namedetails?.["name:en"],
+    item.namedetails?.name,
+    item.name,
+    address.aeroway,
+    address.amenity,
+    address.tourism,
+    address.leisure,
+    address.shop,
+    address.office,
+  ];
+
+  return candidates.find((candidate) => {
+    const normalizedCandidate = normalizeText(candidate);
+
+    if (!normalizedCandidate || isNumericLikeLabel(candidate)) {
+      return false;
+    }
+
+    if (
+      normalizedCandidate === normalizeText(address.house_number) ||
+      normalizedCandidate === normalizeText(address.road) ||
+      normalizedCandidate === normalizeText(streetLabel)
+    ) {
+      return false;
+    }
+
+    const leadDisplayPart = normalizeText(displayParts[0]);
+
+    if (
+      leadDisplayPart &&
+      normalizedCandidate === leadDisplayPart &&
+      !pointOfInterestClasses.has(item.class) &&
+      !pointOfInterestTypes.has(item.type)
+    ) {
+      return false;
+    }
+
+    return true;
+  });
 }
 
-function isPointOfInterest(item, address, streetLabel, displayParts) {
-  const displayLead = displayParts[0] ?? "";
-
+function isPointOfInterest(item, candidatePlaceName) {
   return Boolean(
     pointOfInterestClasses.has(item.class) ||
       pointOfInterestTypes.has(item.type) ||
-      hasPlaceName(item, address) ||
-      (displayLead && streetLabel && displayLead !== streetLabel),
+      candidatePlaceName,
   );
 }
 
@@ -112,24 +146,14 @@ function mapSuggestion(item) {
   const address = item.address ?? {};
   const displayParts = getDisplayParts(item.display_name);
   const streetLabel = buildStreetLabel(address);
-  const placeName =
-    item.name ||
-    item.namedetails?.["name:en"] ||
-    item.namedetails?.name ||
-    address.aeroway ||
-    address.amenity ||
-    address.tourism ||
-    address.leisure ||
-    address.shop ||
-    address.office ||
-    displayParts[0] ||
-    item.display_name;
-  const usePlaceName = isPointOfInterest(
+  const candidatePlaceName = getCandidatePlaceName(
     item,
     address,
     streetLabel,
     displayParts,
   );
+  const placeName = candidatePlaceName || displayParts[0] || item.display_name;
+  const usePlaceName = isPointOfInterest(item, candidatePlaceName);
   const primaryText = usePlaceName
     ? placeName
     : streetLabel || displayParts[0] || item.display_name;
