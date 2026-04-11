@@ -87,14 +87,15 @@ function FleetCard({ vehicle, onChoose }) {
         <div className="relative h-52 overflow-hidden rounded-[1.3rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]">
           {activeImageUrl ? (
             <>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08),rgba(5,8,13,0.86))]" />
               <img
                 src={activeImageUrl}
                 alt={vehicle.name}
-                className="h-full w-full object-cover"
+                className="relative z-[1] h-full w-full object-contain p-3"
                 loading="lazy"
                 decoding="async"
               />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,9,16,0.12),rgba(6,9,16,0.58))]" />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,9,16,0.08),rgba(6,9,16,0.48))]" />
             </>
           ) : (
             <div className="relative h-full">
@@ -137,7 +138,7 @@ function FleetCard({ vehicle, onChoose }) {
               <img
                 src={imageUrl}
                 alt={`${vehicle.name} preview ${index + 1}`}
-                className="h-14 w-16 object-cover"
+                className="h-14 w-16 bg-black/30 object-contain p-1"
                 loading="lazy"
                 decoding="async"
               />

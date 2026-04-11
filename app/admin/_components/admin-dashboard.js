@@ -1242,7 +1242,9 @@ export default function AdminDashboard() {
                           <div className="mt-4 grid gap-3 sm:grid-cols-2">
                             {(vehicle.imageUrls ?? []).map((imageUrl) => (
                               <div key={imageUrl} className="overflow-hidden rounded-[1rem] border border-white/8 bg-black/20">
-                                <img src={imageUrl} alt={`${vehicle.name || "Vehicle"} photo`} className="h-40 w-full object-cover" loading="lazy" />
+                                <div className="flex h-40 w-full items-center justify-center bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),rgba(5,8,13,0.9))] p-3">
+                                  <img src={imageUrl} alt={`${vehicle.name || "Vehicle"} photo`} className="h-full w-full object-contain" loading="lazy" />
+                                </div>
                                 <div className="flex items-center justify-between gap-3 px-3 py-2">
                                   <p className="truncate text-xs text-white/45">{imageUrl.split("/").pop()}</p>
                                   <button type="button" onClick={() => removeVehicleImage(index, imageUrl)} className="text-xs font-semibold text-amber-100 hover:text-white">Remove</button>
