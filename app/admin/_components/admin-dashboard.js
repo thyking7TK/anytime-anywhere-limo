@@ -734,21 +734,58 @@ export default function AdminDashboard() {
                 Navigation
               </p>
               <nav className="mt-5 grid gap-2">
-                {sidebarSections.map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => jumpTo(id)}
-                    className={classNames(
-                      "rounded-[1rem] px-4 py-3 text-left text-sm font-semibold transition",
-                      activeSection === id
-                        ? "border border-[var(--accent)] bg-[rgba(210,176,107,0.12)] text-white"
-                        : "border border-white/8 bg-black/15 text-white/68 hover:border-white/14 hover:bg-white/6 hover:text-white",
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
+                {sidebarSections.map(([id, label]) => {
+                  const isActive = activeSection === id;
+
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => jumpTo(id)}
+                      aria-current={isActive ? "page" : undefined}
+                      className={classNames(
+                        "group relative overflow-hidden rounded-[1.1rem] border px-4 py-3 text-left text-sm font-semibold transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/50",
+                        isActive
+                          ? "translate-x-1 border-[rgba(210,176,107,0.42)] bg-[rgba(210,176,107,0.14)] text-white shadow-[0_18px_36px_rgba(210,176,107,0.12)]"
+                          : "border-white/8 bg-black/15 text-white/68 hover:translate-x-1 hover:border-white/14 hover:bg-white/6 hover:text-white hover:shadow-[0_16px_32px_rgba(0,0,0,0.18)]",
+                      )}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={classNames(
+                          "absolute inset-y-2 left-2 w-1.5 rounded-full bg-[var(--accent)] transition-all duration-300 ease-out",
+                          isActive
+                            ? "opacity-100 scale-y-100"
+                            : "opacity-0 scale-y-50 group-hover:opacity-70 group-hover:scale-y-75",
+                        )}
+                      />
+                      <span
+                        aria-hidden="true"
+                        className={classNames(
+                          "absolute inset-0 bg-[radial-gradient(circle_at_left,rgba(210,176,107,0.18),transparent_58%)] transition-opacity duration-300 ease-out",
+                          isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                        )}
+                      />
+                      <span
+                        className={classNames(
+                          "relative flex items-center justify-between gap-3 pl-3 transition-transform duration-300 ease-out",
+                          isActive ? "translate-x-1" : "group-hover:translate-x-1",
+                        )}
+                      >
+                        <span>{label}</span>
+                        <span
+                          aria-hidden="true"
+                          className={classNames(
+                            "h-2.5 w-2.5 rounded-full border border-white/20 bg-white/12 transition-all duration-300 ease-out",
+                            isActive
+                              ? "scale-100 border-[var(--accent)] bg-[var(--accent)] shadow-[0_0_18px_rgba(210,176,107,0.65)]"
+                              : "scale-75 opacity-45 group-hover:scale-90 group-hover:opacity-100",
+                          )}
+                        />
+                      </span>
+                    </button>
+                  );
+                })}
               </nav>
 
               <div className="mt-6 grid gap-3">
