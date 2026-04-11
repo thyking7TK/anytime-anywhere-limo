@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   calculateEstimate,
@@ -77,6 +77,143 @@ function FleetCard({ vehicle, onChoose }) {
         </button>
       </div>
     </article>
+  );
+}
+
+function AddressAutocompleteField({
+  label,
+  field,
+  placeholder,
+  value,
+  onChange,
+  error,
+}) {
+  const [isFocused, setIsFocused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const blurTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    if (!isFocused || value.trim().length < 3) {
+      setSuggestions([]);
+      setIsLoading(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(async () => {
+      setIsLoading(true);
+
+      try {
+        const response = await fetch(
+          `/api/address-search?q=${encodeURIComponent(value.trim())}`,
+          {
+            signal: controller.signal,
+          },
+        );
+
+        if (!response.ok) {
+          setSuggestions([]);
+          return;
+        }
+
+        const data = await response.json();
+        setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          setSuggestions([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeoutId);
+    };
+  }, [isFocused, value]);
+
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const showSuggestions =
+    isFocused && (suggestions.length > 0 || (value.trim().length >= 3 && isLoading));
+
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm text-white/70">{label}</span>
+      <div className="relative">
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => onChange(field, event.target.value)}
+          onFocus={() => {
+            if (blurTimeoutRef.current) {
+              clearTimeout(blurTimeoutRef.current);
+            }
+            setIsFocused(true);
+          }}
+          onBlur={() => {
+            blurTimeoutRef.current = setTimeout(() => {
+              setIsFocused(false);
+            }, 120);
+          }}
+          placeholder={placeholder}
+          autoComplete="off"
+          className={fieldClassName}
+        />
+
+        {showSuggestions ? (
+          <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-[1.15rem] border border-white/10 bg-[#161a21] shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
+            {isLoading ? (
+              <div className="px-4 py-3 text-sm text-white/60">
+                Searching addresses...
+              </div>
+            ) : null}
+
+            {!isLoading && suggestions.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-white/60">
+                No matching addresses found.
+              </div>
+            ) : null}
+
+            {!isLoading
+              ? suggestions.map((suggestion) => (
+                  <button
+                    key={suggestion.id}
+                    type="button"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      onChange(field, suggestion.displayName);
+                      setSuggestions([]);
+                      setIsFocused(false);
+                    }}
+                    className="block w-full border-b border-white/6 px-4 py-3 text-left last:border-b-0 hover:bg-white/6"
+                  >
+                    <span className="block text-sm font-medium text-white">
+                      {suggestion.primaryText}
+                    </span>
+                    <span className="mt-1 block text-xs text-white/55">
+                      {suggestion.secondaryText || suggestion.displayName}
+                    </span>
+                  </button>
+                ))
+              : null}
+          </div>
+        ) : null}
+      </div>
+      {error ? (
+        <span className="mt-2 block text-sm text-amber-200">{error}</span>
+      ) : null}
+    </label>
   );
 }
 
@@ -460,37 +597,23 @@ export default function AnytimeAnywhereLimoWebsite() {
                 </div>
 
                 <div className="grid gap-5 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-2 block text-sm text-white/70">Pickup Location</span>
-                    <input
-                      type="text"
-                      value={form.pickup}
-                      onChange={(event) => updateField("pickup", event.target.value)}
-                      placeholder="Airport, hotel, office, or address"
-                      className={fieldClassName}
-                    />
-                    {errors.pickup ? (
-                      <span className="mt-2 block text-sm text-amber-200">
-                        {errors.pickup}
-                      </span>
-                    ) : null}
-                  </label>
+                  <AddressAutocompleteField
+                    label="Pickup Location"
+                    field="pickup"
+                    value={form.pickup}
+                    onChange={updateField}
+                    placeholder="Airport, hotel, office, or address"
+                    error={errors.pickup}
+                  />
 
-                  <label className="block">
-                    <span className="mb-2 block text-sm text-white/70">Drop-off Location</span>
-                    <input
-                      type="text"
-                      value={form.dropoff}
-                      onChange={(event) => updateField("dropoff", event.target.value)}
-                      placeholder="Destination or event venue"
-                      className={fieldClassName}
-                    />
-                    {errors.dropoff ? (
-                      <span className="mt-2 block text-sm text-amber-200">
-                        {errors.dropoff}
-                      </span>
-                    ) : null}
-                  </label>
+                  <AddressAutocompleteField
+                    label="Drop-off Location"
+                    field="dropoff"
+                    value={form.dropoff}
+                    onChange={updateField}
+                    placeholder="Destination or event venue"
+                    error={errors.dropoff}
+                  />
                 </div>
 
                 <div className="grid gap-5 sm:grid-cols-[1fr_1fr_0.9fr]">

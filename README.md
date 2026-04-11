@@ -29,6 +29,19 @@ For Vercel, the simplest production setup is:
 
 The `bookings` table is created automatically on the first successful booking write.
 
+## Address autocomplete
+
+Pickup and drop-off fields use a server-side address search route at `GET /api/address-search`.
+
+Optional environment variable:
+
+- `ADDRESS_SEARCH_COUNTRY_CODES`
+
+Example:
+
+- `us` to prefer United States results
+- `us,ca` to allow multiple countries
+
 ## Booking emails
 
 Booking emails are sent after a booking is successfully saved.
