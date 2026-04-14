@@ -50,7 +50,79 @@ const proofChips = [
   "24/7 reservations",
   "Professional chauffeurs",
 ];
-const primarySectionIds = ["how-it-works", "services", "rates", "fleet", "reviews", "faq", "contact"];
+const coverageAreas = [
+  {
+    name: "Maine",
+    detail:
+      "Primary operations for airport transfers, executive travel, and long-distance private transportation.",
+  },
+  {
+    name: "Massachusetts",
+    detail:
+      "Strong Boston-area coverage including Logan transfers, corporate bookings, and private black car service.",
+  },
+  {
+    name: "New York",
+    detail:
+      "Executive travel, airport service, and long-distance transportation throughout New York by request.",
+  },
+];
+
+const whyAutovisePoints = [
+  {
+    title: "Nationwide Reach",
+    text: "Autovise is based on the East Coast and can coordinate transportation services nationwide for clients who need consistency beyond one region.",
+  },
+  {
+    title: "Professional Precision",
+    text: "Clients book Autovise for discretion, punctuality, and the calm confidence that comes with professional chauffeur service.",
+  },
+  {
+    title: "Airport to Long-Distance",
+    text: "From airport transfers and executive runs to state-line travel and VIP itineraries, the service is built for real transportation needs.",
+  },
+  {
+    title: "Available 24/7",
+    text: "Early departures, late-night arrivals, and time-sensitive bookings are handled with the same level of care every day of the week.",
+  },
+];
+
+const faqItems = [
+  {
+    q: "Do you track my flight?",
+    a: "Yes. Flight tracking is part of the airport transfer experience, including pickups for Boston Logan, JFK, LaGuardia, and other major airports.",
+  },
+  {
+    q: "What types of transportation do you offer?",
+    a: "Autovise Black Car handles nationwide airport transfers, executive and corporate travel, long-distance private rides, event and VIP transportation, and hourly chauffeur service.",
+  },
+  {
+    q: "Where are your primary operations?",
+    a: "Autovise is based on the East Coast with primary operations across Maine, Massachusetts, and New York.",
+  },
+  {
+    q: "Do you provide nationwide service?",
+    a: "Yes. While the company is East Coast based, transportation services can be coordinated and provided nationwide by request.",
+  },
+  {
+    q: "How is pricing handled?",
+    a: "Quotes are provided before the ride begins. Airport, executive, long-distance, and VIP transportation are all confirmed with clear pricing and service details.",
+  },
+  {
+    q: "Can I book long-distance private travel across state lines?",
+    a: "Yes. Long-distance private transportation is one of the core services, with comfortable door-to-door rides across state lines and custom itinerary support.",
+  },
+  {
+    q: "Are you available for weddings and private events?",
+    a: "Yes. Event and VIP transportation is available for weddings, private events, and high-end clientele who want a polished arrival and departure.",
+  },
+  {
+    q: "How do I book?",
+    a: "Use the booking form on the site for a request, or call concierge directly at +1 (207) 880-3733 for immediate help.",
+  },
+];
+
+const primarySectionIds = ["how-it-works", "services", "coverage", "rates", "fleet", "reviews", "faq", "contact"];
 
 function MobileNav({ navItems, activeNavSection, onNavClick, brandContent }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -474,6 +546,7 @@ export default function AnytimeAnywhereLimoWebsite({
   const navItems = [
     ["how-it-works", navigationContent.howItWorks],
     ["services", navigationContent.services],
+    ["coverage", "Coverage"],
     ["rates", "Rates"],
     ["fleet", navigationContent.fleet],
     ["reviews", navigationContent.reviews],
@@ -1096,81 +1169,104 @@ export default function AnytimeAnywhereLimoWebsite({
         </section>
         </div>
 
+        <section id="coverage" className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
+          <div className="limo-container">
+            <p className="lux-section-label">Our Coverage</p>
+            <h2 className="max-w-[820px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
+              Nationwide service with primary operations across the East Coast.
+            </h2>
+            <p className="mt-5 max-w-[760px] text-lg leading-8 text-white/66">
+              We proudly provide transportation services across the United States, with primary operations in Maine, Massachusetts, and New York.
+            </p>
+
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {coverageAreas.map((area) => (
+                <article key={area.name} className="glass-panel soft-lift rounded-[1.4rem] p-7">
+                  <p className="lux-section-label !mb-0 text-[0.7rem]">Primary Operations</p>
+                  <h3 className="mt-4 font-display text-[1.9rem] leading-tight text-white">{area.name}</h3>
+                  <p className="mt-4 text-sm leading-7 text-white/64">{area.detail}</p>
+                </article>
+              ))}
+            </div>
+
+            <div className="mt-8 inline-flex flex-wrap items-center gap-3 rounded-[1.2rem] border border-[var(--line-strong)] bg-white/3 px-5 py-4 text-sm text-white/68">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+              <span>Nationwide service available by request.</span>
+            </div>
+          </div>
+        </section>
+
         <section id="rates" className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
           <div className="limo-container">
             <p className="lux-section-label">Pricing</p>
             <h2 className="max-w-[760px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
-              Clear, flat rates. No surprises.
+              Clear pricing, confirmed before the ride begins.
             </h2>
-            <p className="mt-5 max-w-[680px] text-lg leading-8 text-white/66">
-              You see the price before you book. No meters, no surge pricing, no hidden fees.
+            <p className="mt-5 max-w-[720px] text-lg leading-8 text-white/66">
+              Airport transfers, executive bookings, long-distance travel, and VIP transportation are quoted clearly so clients know what to expect before the trip is confirmed.
             </p>
 
             <div className="mt-10 grid gap-5 md:grid-cols-3">
               <article className="glass-panel soft-lift rounded-[1.4rem] p-7 md:col-span-1">
                 <p className="lux-section-label !mb-0 text-[0.7rem]">Airport Transfers</p>
-                <h3 className="mt-4 font-display text-[1.8rem] leading-tight text-white">Boston Logan</h3>
+                <h3 className="mt-4 font-display text-[1.8rem] leading-tight text-white">Major Airports</h3>
                 <div className="mt-5 space-y-3 border-t border-white/8 pt-5 text-sm text-white/68">
                   <div className="flex items-center justify-between">
-                    <span>Portland → Boston Logan</span>
-                    <span className="font-semibold text-white">$650</span>
+                    <span>Boston Logan (BOS)</span>
+                    <span className="font-semibold text-white">Flat-rate quote</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Round Trip</span>
-                    <span className="font-semibold text-white">$1,200</span>
+                    <span>JFK & LaGuardia</span>
+                    <span className="font-semibold text-white">Coordinated pickup</span>
                   </div>
                   <div className="flex items-center justify-between border-t border-white/8 pt-3">
-                    <span>Portland → PWM Airport</span>
-                    <span className="font-semibold text-white">$75–$120</span>
+                    <span>Nationwide airports</span>
+                    <span className="font-semibold text-white">By request</span>
                   </div>
                 </div>
               </article>
 
               <article className="glass-panel soft-lift rounded-[1.4rem] p-7 md:col-span-1">
-                <p className="lux-section-label !mb-0 text-[0.7rem]">Hourly & Events</p>
-                <h3 className="mt-4 font-display text-[1.8rem] leading-tight text-white">By the Hour</h3>
+                <p className="lux-section-label !mb-0 text-[0.7rem]">Executive & Hourly</p>
+                <h3 className="mt-4 font-display text-[1.8rem] leading-tight text-white">On Your Schedule</h3>
                 <div className="mt-5 space-y-3 border-t border-white/8 pt-5 text-sm text-white/68">
                   <div className="flex items-center justify-between">
-                    <span>Weekday rate</span>
-                    <span className="font-semibold text-white">$110 / hr</span>
+                    <span>Corporate travel</span>
+                    <span className="font-semibold text-white">Quoted upfront</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Weekend / events</span>
-                    <span className="font-semibold text-white">$125–$140 / hr</span>
+                    <span>Hourly chauffeur</span>
+                    <span className="font-semibold text-white">$110/hr starting</span>
                   </div>
                   <div className="flex items-center justify-between border-t border-white/8 pt-3">
-                    <span>Minimum booking</span>
-                    <span className="font-semibold text-white">3 hours</span>
+                    <span>Dedicated support</span>
+                    <span className="font-semibold text-white">Multi-stop ready</span>
                   </div>
                 </div>
               </article>
 
               <article className="glass-panel soft-lift rounded-[1.4rem] p-7 md:col-span-1">
-                <p className="lux-section-label !mb-0 text-[0.7rem]">Additional Charges</p>
-                <h3 className="mt-4 font-display text-[1.8rem] leading-tight text-white">Good to Know</h3>
+                <p className="lux-section-label !mb-0 text-[0.7rem]">Long-Distance & VIP</p>
+                <h3 className="mt-4 font-display text-[1.8rem] leading-tight text-white">Custom Itineraries</h3>
                 <div className="mt-5 space-y-3 border-t border-white/8 pt-5 text-sm text-white/68">
                   <div className="flex items-center justify-between">
-                    <span>Wait time</span>
-                    <span className="font-semibold text-white">$40 / hr</span>
+                    <span>State-line travel</span>
+                    <span className="font-semibold text-white">Door to door</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Extra stops</span>
-                    <span className="font-semibold text-white">$25–$50</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>After 10PM</span>
-                    <span className="font-semibold text-white">+15%</span>
+                    <span>Events & VIP rides</span>
+                    <span className="font-semibold text-white">Custom quote</span>
                   </div>
                   <div className="flex items-center justify-between border-t border-white/8 pt-3">
-                    <span>Holidays / events</span>
-                    <span className="font-semibold text-white">+20%</span>
+                    <span>Stops & wait time</span>
+                    <span className="font-semibold text-white">Confirmed upfront</span>
                   </div>
                 </div>
               </article>
             </div>
 
             <p className="mt-6 text-sm text-white/38">
-              Long-distance travel is priced at base rate + $1.50/mile. All rates exclude tolls and gratuity. Contact us for a custom quote on multi-day or out-of-state bookings.
+              Final pricing is confirmed before dispatch. Long-distance and nationwide trips are quoted based on route, timing, stop count, service window, tolls, and itinerary complexity.
             </p>
           </div>
         </section>
@@ -1179,37 +1275,16 @@ export default function AnytimeAnywhereLimoWebsite({
           <div className="limo-container">
             <p className="lux-section-label">Why Autovise</p>
             <h2 className="max-w-[760px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
-              The standard every ride is held to.
+              Luxury transportation built on reliability and discretion.
             </h2>
-            <p className="mt-5 max-w-[680px] text-lg leading-8 text-white/66">
-              Autovise Black Car was built around one standard — show up professionally, on time, every single time. Transparent flat rates, a spotless Yukon Denali, and a chauffeur who treats every ride like it matters. Because it does.
+            <p className="mt-5 max-w-[760px] text-lg leading-8 text-white/66">
+              While Autovise Black Car is based on the East Coast, the service is built to coordinate transportation nationwide for clients who need professionalism, reliability, and precision wherever they travel.
             </p>
 
             <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              {[
-                {
-                  icon: "✦",
-                  title: "Nationwide Reach",
-                  text: "East Coast based, nationwide capable. We coordinate transportation across the United States for clients who need reliability beyond the region.",
-                },
-                {
-                  icon: "✦",
-                  title: "Punctual. Always.",
-                  text: "Real-time flight tracking, early arrivals, professional presentation. You should never wait for your driver.",
-                },
-                {
-                  icon: "✦",
-                  title: "Transparent Flat Rates",
-                  text: "No surge pricing, no meter running. You know the exact cost before you book — and it stays that way.",
-                },
-                {
-                  icon: "✦",
-                  title: "Available 24/7",
-                  text: "Early morning departures, late-night arrivals, cross-state runs. We're available when you need us, not just when it's convenient.",
-                },
-              ].map((item) => (
+              {whyAutovisePoints.map((item) => (
                 <article key={item.title} className="glass-panel fade-in soft-lift rounded-[1.4rem] p-7">
-                  <p className="text-[var(--accent)] text-lg mb-5">{item.icon}</p>
+                  <p className="text-[var(--accent)] text-lg mb-5">✦</p>
                   <h3 className="font-display text-[1.5rem] leading-tight text-white">{item.title}</h3>
                   <p className="mt-3 text-sm leading-7 text-white/60">{item.text}</p>
                 </article>
@@ -1341,40 +1416,7 @@ export default function AnytimeAnywhereLimoWebsite({
             </h2>
 
             <div className="mt-10 grid gap-4 md:grid-cols-2">
-              {[
-                {
-                  q: "Do you track my flight?",
-                  a: "Yes. We monitor your flight in real time. If your flight is delayed, your chauffeur adjusts — you won't be charged extra for flight delays outside your control.",
-                },
-                {
-                  q: "What payment methods do you accept?",
-                  a: "We accept all major credit and debit cards, cash, Venmo, and Zelle. Payment details are confirmed at booking.",
-                },
-                {
-                  q: "What is your cancellation policy?",
-                  a: "Free cancellation up to 24 hours before your scheduled pickup. Cancellations within 24 hours are subject to a 50% charge. No-shows are billed in full.",
-                },
-                {
-                  q: "Will I get a confirmation after booking?",
-                  a: "Yes. Once your request is received and confirmed, we'll send a booking confirmation to your email with all trip details and your chauffeur's contact information.",
-                },
-                {
-                  q: "Is gratuity included in the price?",
-                  a: "An 18% gratuity is included in your estimate. Additional gratuity is always appreciated but never expected.",
-                },
-                {
-                  q: "How far in advance should I book?",
-                  a: "We recommend at least 24–48 hours in advance for standard trips. For weddings and events, book as early as possible. Last-minute requests are handled based on availability — call or text us directly.",
-                },
-                {
-                  q: "Do you do long-distance trips outside Maine?",
-                  a: "Yes. We travel throughout New England and beyond. Long-distance trips are priced at our base rate plus $1.50/mile. Contact us for a custom quote.",
-                },
-                {
-                  q: "Are you licensed and insured?",
-                  a: "Yes. LuxTime Black Car is fully licensed for commercial passenger transport and carries comprehensive liability insurance on every trip.",
-                },
-              ].map((item) => (
+              {faqItems.map((item) => (
                 <article key={item.q} className="glass-panel rounded-[1.4rem] p-6">
                   <h3 className="font-semibold text-white">{item.q}</h3>
                   <p className="mt-3 text-sm leading-7 text-white/60">{item.a}</p>
@@ -1398,8 +1440,8 @@ export default function AnytimeAnywhereLimoWebsite({
 
                 <div className="mt-6 inline-flex flex-wrap items-center gap-2 rounded-[1rem] border border-[var(--line-strong)] bg-white/3 px-4 py-3 text-sm text-white/60">
                   <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-                  <span>Primary operations — <strong className="text-white/80">Maine · Massachusetts · New York</strong></span>
-                  <span className="hidden sm:inline text-white/24">·</span>
+                  <span>Primary operations - <strong className="text-white/80">Maine · Massachusetts · New York</strong></span>
+                  <span className="hidden sm:inline text-white/24">/</span>
                   <span className="text-[var(--accent)]">Nationwide service available by request</span>
                 </div>
 
@@ -1427,7 +1469,7 @@ export default function AnytimeAnywhereLimoWebsite({
                 <article className="glass-panel soft-lift rounded-[1.4rem] p-6">
                   <p className="lux-section-label !mb-0 text-[0.7rem]">{contactSection.phoneLabel}</p>
                   <a
-                    href={`tel:${String(contactSection.phoneValue ?? "").replace(/\s+/g, "")}`}
+                    href={contactPhoneHref}
                     className="mt-4 block font-display text-[1.9rem] leading-tight text-white"
                   >
                     {contactSection.phoneValue}
@@ -1486,7 +1528,7 @@ export default function AnytimeAnywhereLimoWebsite({
 
       <a
         href={contactPhoneHref}
-        aria-label={`Call LuxTime Black Car: ${floatingActions.callLabel}`}
+        aria-label={`Call ${brandContent.name}: ${floatingActions.callLabel}`}
         className="floating-link floating-call hidden sm:inline-flex"
       >
         <span className="floating-icon" aria-hidden="true">✆</span>
@@ -1504,4 +1546,3 @@ export default function AnytimeAnywhereLimoWebsite({
     </div>
   );
 }
-
