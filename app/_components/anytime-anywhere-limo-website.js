@@ -345,13 +345,13 @@ function StepCard({ item }) {
 
 function HeroStatCard({ item }) {
   return (
-    <article className="glass-panel fade-in soft-lift relative min-h-[190px] overflow-hidden rounded-[1.2rem] p-5 md:min-h-[210px] md:p-6">
+    <article className="glass-panel fade-in soft-lift relative flex min-h-[210px] flex-col overflow-hidden rounded-[1.2rem] p-5 md:min-h-[230px] md:p-6 lg:min-h-[250px]">
       <span className="absolute right-0 top-0 h-8 w-8 border-r border-t border-[rgba(200,168,112,0.4)] rounded-tr-[1.2rem]" />
       <span className="absolute bottom-0 left-0 h-8 w-8 border-b border-l border-[rgba(200,168,112,0.2)] rounded-bl-[1.2rem]" />
-      <p className="max-w-[12ch] font-display text-[2.2rem] leading-[0.92] text-white md:text-[3rem]">
+      <p className="max-w-full font-display text-[2.35rem] leading-[0.92] text-white sm:text-[2.8rem] md:text-[3.4rem]">
         {item.value}
       </p>
-      <p className="mt-4 max-w-[18ch] text-sm leading-7 text-white/66">
+      <p className="mt-4 max-w-[30ch] text-sm leading-7 text-white/66 md:text-[1rem]">
         {item.text}
       </p>
     </article>
@@ -896,7 +896,7 @@ export default function AnytimeAnywhereLimoWebsite({
                 </a>
               </div>
 
-              <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="mt-8 grid max-w-[920px] grid-cols-1 gap-4 sm:grid-cols-2">
                 {heroStats.map((item, index) => (
                   <HeroStatCard key={`${item.value}-${index}`} item={item} />
                 ))}
