@@ -1,6 +1,6 @@
 ﻿"use client";
-/* eslint-disable @next/next/no-img-element */
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import {
@@ -50,11 +50,96 @@ const proofChips = [
   "24/7 reservations",
   "Professional chauffeurs",
 ];
-const primarySectionIds = ["how-it-works", "services", "fleet", "reviews", "contact"];
+const primarySectionIds = ["how-it-works", "services", "rates", "fleet", "reviews", "faq", "contact"];
+
+function MobileNav({ navItems, activeNavSection, onNavClick, brandContent }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  function close() {
+    setIsOpen(false);
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={isOpen ? "Close menu" : "Open menu"}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex lg:hidden flex-col justify-center items-center gap-[5px] w-11 h-11 rounded-full border border-white/10 bg-white/4 backdrop-blur-sm"
+      >
+        <span
+          className={`block h-px w-5 bg-white/80 transition-transform duration-300 ${isOpen ? "translate-y-[6px] rotate-45" : ""}`}
+        />
+        <span
+          className={`block h-px w-5 bg-white/80 transition-opacity duration-300 ${isOpen ? "opacity-0" : ""}`}
+        />
+        <span
+          className={`block h-px w-5 bg-white/80 transition-transform duration-300 ${isOpen ? "-translate-y-[6px] -rotate-45" : ""}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 lg:hidden"
+          onClick={close}
+          aria-hidden="true"
+        />
+      )}
+
+      <div
+        className={`fixed inset-y-0 right-0 z-50 w-72 flex flex-col lg:hidden border-l border-white/8 bg-[rgba(6,7,12,0.97)] backdrop-blur-2xl transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+      >
+        <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
+          <div>
+            <p className="font-display text-[1.3rem] leading-none text-white">
+              {brandContent.name}
+            </p>
+            <p className="mt-1 text-[0.62rem] uppercase tracking-[0.3em] text-[var(--accent)]">
+              {brandContent.subtitle}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={close}
+            className="flex items-center justify-center w-9 h-9 rounded-full border border-white/10 bg-white/4 text-white/60 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+
+        <nav className="flex flex-col gap-1 p-5">
+          {navItems.map(([id, label]) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              onClick={() => { onNavClick(id); close(); }}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors ${activeNavSection === id ? "bg-white/6 text-white border border-white/10" : "text-white/70 hover:bg-white/4 hover:text-white"}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${activeNavSection === id ? "bg-[var(--accent)]" : "bg-white/20"}`} />
+              {label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="mt-auto border-t border-white/8 p-5">
+          <a
+            href="#booking"
+            onClick={close}
+            className="lux-button flex min-h-12 items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e]"
+          >
+            Reserve Now
+          </a>
+        </div>
+      </div>
+    </>
+  );
+}
 
 function ServiceCard({ service, onChoose }) {
   return (
-    <article className="glass-panel fade-in soft-lift rounded-[2rem] p-7">
+    <article className="glass-panel fade-in soft-lift rounded-[1.4rem] p-7">
       <p className="lux-section-label">{service.eyebrow}</p>
       <h3 className="mt-4 font-display text-[2rem] leading-none text-white md:text-[2.25rem]">
         {service.title}
@@ -63,10 +148,11 @@ function ServiceCard({ service, onChoose }) {
       <button
         type="button"
         onClick={() => onChoose(service.id)}
+        aria-label={`Reserve ${service.title}`}
         className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent)] hover:gap-4 hover:text-[var(--accent-strong)]"
       >
         Reserve this service
-        <span aria-hidden="true">-&gt;</span>
+        <span aria-hidden="true">→</span>
       </button>
     </article>
   );
@@ -79,30 +165,35 @@ function FleetCard({ vehicle, onChoose }) {
   const activeImageUrl = imageUrls[resolvedImageIndex] ?? imageUrls[0] ?? null;
 
   return (
-    <article className="glass-panel fade-in soft-lift rounded-[2rem] p-7">
+    <article className="glass-panel fade-in soft-lift rounded-[1.4rem] p-7">
       <div
         className={`soft-grid relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-gradient-to-br ${vehicle.accent} p-4`}
       >
         <div className="float-sheen absolute inset-x-12 top-3 h-24 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.18),transparent_68%)] blur-2xl" />
-        <div className="relative h-52 overflow-hidden rounded-[1.3rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]">
+        <div className="relative h-40 overflow-hidden rounded-[1.3rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] sm:h-52">
           {activeImageUrl ? (
             <>
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08),rgba(5,8,13,0.86))]" />
-              <img
+              <Image
                 src={activeImageUrl}
                 alt={vehicle.name}
-                className="relative z-[1] h-full w-full object-contain p-3"
-                loading="lazy"
-                decoding="async"
+                fill
+                className="relative z-[1] object-contain p-3"
+                sizes="(max-width: 768px) 100vw, 400px"
               />
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,9,16,0.08),rgba(6,9,16,0.48))]" />
             </>
           ) : (
-            <div className="relative h-full">
-              <div className="absolute inset-x-8 bottom-10 h-11 rounded-[999px] border border-white/12 bg-black/35" />
-              <div className="absolute inset-x-12 bottom-14 h-14 rounded-[999px] border border-white/14 bg-[linear-gradient(90deg,rgba(255,255,255,0.18),rgba(255,255,255,0.04))]" />
-              <div className="absolute bottom-13 left-14 h-5 w-5 rounded-full border border-white/15 bg-black/70" />
-              <div className="absolute bottom-13 right-14 h-5 w-5 rounded-full border border-white/15 bg-black/70" />
+            <div className="relative h-full flex flex-col items-center justify-center gap-3">
+              <svg viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-48 opacity-30">
+                <path d="M20 52 C20 52 30 30 50 26 L80 22 L120 22 L150 26 C170 30 180 52 180 52 L185 52 L185 58 L15 58 L15 52 Z" fill="rgba(200,168,112,0.4)" stroke="rgba(200,168,112,0.5)" strokeWidth="1"/>
+                <circle cx="50" cy="58" r="10" stroke="rgba(200,168,112,0.5)" strokeWidth="1.5" fill="rgba(0,0,0,0.6)"/>
+                <circle cx="150" cy="58" r="10" stroke="rgba(200,168,112,0.5)" strokeWidth="1.5" fill="rgba(0,0,0,0.6)"/>
+                <circle cx="50" cy="58" r="4" fill="rgba(200,168,112,0.4)"/>
+                <circle cx="150" cy="58" r="4" fill="rgba(200,168,112,0.4)"/>
+                <path d="M55 26 L75 22 L125 22 L145 26 L130 42 L70 42 Z" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5"/>
+              </svg>
+              <p className="text-[0.68rem] uppercase tracking-[0.28em] text-white/25">{vehicle.name}</p>
             </div>
           )}
         </div>
@@ -135,12 +226,12 @@ function FleetCard({ vehicle, onChoose }) {
                   : "border-white/10"
               }`}
             >
-              <img
+              <Image
                 src={imageUrl}
                 alt={`${vehicle.name} preview ${index + 1}`}
-                className="h-14 w-16 bg-black/30 object-contain p-1"
-                loading="lazy"
-                decoding="async"
+                width={64}
+                height={56}
+                className="bg-black/30 object-contain p-1"
               />
             </button>
           ))}
@@ -157,6 +248,7 @@ function FleetCard({ vehicle, onChoose }) {
       <button
         type="button"
         onClick={() => onChoose(vehicle.slug)}
+        aria-label={`Select ${vehicle.name}`}
         className="lux-button mt-6 inline-flex min-h-12 items-center justify-center rounded-full border border-white/12 bg-white/4 px-5 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/7"
       >
         Select vehicle
@@ -167,7 +259,7 @@ function FleetCard({ vehicle, onChoose }) {
 
 function StepCard({ item }) {
   return (
-    <article className="glass-panel fade-in soft-lift rounded-[2rem] p-7">
+    <article className="glass-panel fade-in soft-lift rounded-[1.4rem] p-7">
       <p className="text-xs uppercase tracking-[0.28em] text-[var(--accent)]">
         {item.step}
       </p>
@@ -360,6 +452,16 @@ export default function AnytimeAnywhereLimoWebsite({
     contactSection.phoneValue ?? "",
   ).replace(/[^+\d]/g, "")}`;
   const startingRates = computeStartingRates(catalog);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    function onScroll() {
+      setShowScrollTop(window.scrollY > 400);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const [form, setForm] = useState(() => ({
     ...defaultForm,
     vehicle: vehicles[0]?.slug ?? "",
@@ -372,6 +474,7 @@ export default function AnytimeAnywhereLimoWebsite({
   const navItems = [
     ["how-it-works", navigationContent.howItWorks],
     ["services", navigationContent.services],
+    ["rates", "Rates"],
     ["fleet", navigationContent.fleet],
     ["reviews", navigationContent.reviews],
     ["contact", navigationContent.contact],
@@ -463,6 +566,26 @@ export default function AnytimeAnywhereLimoWebsite({
     };
   }, []);
 
+  useEffect(() => {
+    const elements = document.querySelectorAll(".fade-in");
+    if (!elements.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("in-view");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
+    );
+
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   function handleServicePick(serviceId) {
     updateField("service", serviceId);
     scrollToBooking();
@@ -525,10 +648,10 @@ export default function AnytimeAnywhereLimoWebsite({
 
   return (
     <div className="page-shell min-h-screen overflow-x-hidden text-white">
-      <header className="sticky top-0 z-30 border-b border-white/8 bg-[rgba(4,7,13,0.62)] backdrop-blur-xl">
-        <div className="limo-container flex min-h-[86px] items-center justify-between gap-6">
+      <header className="sticky top-0 z-30 border-b border-white/6 bg-[rgba(5,6,10,0.72)] backdrop-blur-xl">
+        <div className="limo-container flex min-h-[64px] items-center justify-between gap-4 md:min-h-[80px] md:gap-6">
           <a href="#top" aria-label={`${brandContent.name || "Anytime, Anywhere"} home`} className="shrink-0">
-            <p className="font-display text-[1.8rem] leading-none tracking-[-0.02em] text-white md:text-[2.2rem]">
+            <p className="font-display text-[1.3rem] leading-none tracking-[-0.02em] text-white md:text-[1.8rem]">
               {brandContent.name}
             </p>
             <p className="mt-1 text-[0.72rem] uppercase tracking-[0.28em] text-white/54">
@@ -556,18 +679,34 @@ export default function AnytimeAnywhereLimoWebsite({
           >
             {navigationContent.reserve}
           </a>
+
+          <MobileNav
+            navItems={navItems}
+            activeNavSection={activeNavSection}
+            onNavClick={setActiveNavSection}
+            brandContent={brandContent}
+          />
         </div>
       </header>
 
       <main id="top">
-        <section className="px-5 pb-10 pt-8 md:pb-14 md:pt-12">
+        <div className="relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 z-0">
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,#05060a_0%,#080a0e_40%,#06080f_100%)]" />
+            <div className="absolute inset-0 opacity-[0.028]" style={{backgroundImage:"repeating-linear-gradient(0deg,transparent,transparent 79px,rgba(255,255,255,0.5) 80px),repeating-linear-gradient(90deg,transparent,transparent 79px,rgba(255,255,255,0.5) 80px)"}} />
+            <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[rgba(200,168,112,0.3)] to-transparent" />
+            <div className="absolute -top-40 right-0 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(200,168,112,0.06),transparent_65%)]" />
+            <div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,rgba(200,168,112,0.04),transparent_65%)]" />
+          </div>
+
+        <section className="relative z-10 px-4 pb-8 pt-6 sm:px-5 md:pb-12 md:pt-10">
           <div className="limo-container grid gap-8 xl:grid-cols-[1.02fr_0.98fr] xl:items-stretch">
             <div className="fade-in py-4 md:py-10">
               <div className="lux-eyebrow">{heroContent.eyebrow}</div>
               <p className="mt-6 text-[0.92rem] uppercase tracking-[0.28em] text-[var(--accent)]">
                 {heroContent.kicker}
               </p>
-              <h1 className="mt-7 max-w-[760px] font-display text-[3.4rem] leading-[0.94] tracking-[-0.03em] text-white sm:text-[4.6rem] xl:text-[5.8rem]">
+              <h1 className="mt-7 max-w-[820px] font-display text-[2rem] leading-[1] tracking-[-0.03em] text-white sm:text-[3rem] lg:text-[4.6rem] xl:text-[6rem]">
                 {heroContent.title}
               </h1>
               <p className="mt-7 max-w-[680px] text-lg leading-8 text-white/68 md:text-xl">
@@ -577,7 +716,7 @@ export default function AnytimeAnywhereLimoWebsite({
               <div className="mt-9 flex flex-wrap gap-4">
                 <a
                   href="#booking"
-                  className="lux-button inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--accent)] px-8 text-sm font-bold text-[#11151d] shadow-[0_18px_40px_rgba(210,176,107,0.24)] hover:bg-[var(--accent-dark)]"
+                  className="lux-button inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--accent)] px-8 text-sm font-bold text-[#0a0a0e] shadow-[0_18px_40px_rgba(210,176,107,0.24)] hover:bg-[var(--accent-dark)]"
                 >
                   {heroContent.primaryButtonLabel}
                 </a>
@@ -589,16 +728,16 @@ export default function AnytimeAnywhereLimoWebsite({
                 </a>
               </div>
 
-              <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {heroStats.map((item, index) => (
                   <article
                     key={`${item.value}-${index}`}
-                    className="glass-panel fade-in soft-lift rounded-[1.8rem] p-6"
+                    className="glass-panel fade-in soft-lift rounded-[1.2rem] p-4 md:p-6"
                   >
-                    <p className="font-display text-5xl leading-none text-white">
+                    <p className="font-display text-3xl leading-none text-white md:text-5xl">
                       {item.value}
                     </p>
-                    <p className="mt-3 text-sm leading-7 text-white/66">
+                    <p className="mt-2 text-xs leading-5 text-white/66 md:mt-3 md:text-sm md:leading-7">
                       {item.text}
                     </p>
                   </article>
@@ -608,13 +747,13 @@ export default function AnytimeAnywhereLimoWebsite({
 
             <aside
               id="booking"
-              className="booking-panel glass-panel fade-in overflow-hidden rounded-[2rem] p-6 md:p-8"
+              className="booking-panel glass-panel fade-in overflow-hidden rounded-[1.4rem] p-6 md:p-8"
               aria-label={heroContent.bookingEyebrow}
             >
               <div className="relative z-10 flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p className="lux-section-label">{heroContent.bookingEyebrow}</p>
-                  <h2 className="mt-3 font-display text-[2.25rem] leading-none text-white md:text-[3rem]">
+                  <h2 className="mt-3 font-display text-[1.6rem] leading-none text-white md:text-[2.4rem]">
                     {heroContent.bookingTitle}
                   </h2>
                   <p className="mt-3 max-w-[480px] text-sm leading-7 text-white/64">
@@ -627,7 +766,7 @@ export default function AnytimeAnywhereLimoWebsite({
               </div>
 
               {submittedBooking ? (
-                <div className="relative z-10 mt-6 rounded-[1.7rem] border border-[var(--line-strong)] bg-[linear-gradient(180deg,rgba(210,176,107,0.14),rgba(255,255,255,0.02))] p-5">
+                <div className="relative z-10 mt-6 rounded-[1.2rem] border border-[var(--line-strong)] bg-[linear-gradient(180deg,rgba(200,168,112,0.12),rgba(255,255,255,0.02))] p-5">
                   <p className="text-xs uppercase tracking-[0.3em] text-[var(--accent-strong)]">
                     {bookingUi.successLabel}
                   </p>
@@ -651,7 +790,7 @@ export default function AnytimeAnywhereLimoWebsite({
               ) : null}
 
               {submitError ? (
-                <div className="relative z-10 mt-6 rounded-[1.4rem] border border-amber-200/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-100">
+                <div className="relative z-10 mt-6 rounded-[0.9rem] border border-amber-200/20 bg-amber-200/8 px-4 py-3 text-sm text-amber-100/90">
                   {submitError}
                 </div>
               ) : null}
@@ -662,11 +801,11 @@ export default function AnytimeAnywhereLimoWebsite({
                 </div>
               ) : null}
 
-              <form onSubmit={handleSubmit} className="relative z-10 mt-6">
+              <form onSubmit={handleSubmit} className="relative z-10 mt-6" noValidate aria-label="Booking request form">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <label className="block">
+                  <label className="block" htmlFor="field-service">
                     <span className="mb-2 block text-sm text-white/72">Service</span>
-                    <select
+                    <select id="field-service" aria-required="true" aria-invalid={!!errors.service}
                       value={form.service}
                       onChange={(event) => updateField("service", event.target.value)}
                       className={fieldClassName}
@@ -684,9 +823,12 @@ export default function AnytimeAnywhereLimoWebsite({
                     ) : null}
                   </label>
 
-                  <label className="block">
+                  <label className="block" htmlFor="field-vehicle">
                     <span className="mb-2 block text-sm text-white/72">Vehicle</span>
                     <select
+                      id="field-vehicle"
+                      aria-required="true"
+                      aria-invalid={!!errors.vehicle}
                       value={form.vehicle}
                       onChange={(event) => updateVehicle(event.target.value)}
                       disabled={!hasVehicles}
@@ -798,6 +940,38 @@ export default function AnytimeAnywhereLimoWebsite({
                     error={errors.dropoff}
                   />
 
+                  <div className="md:col-span-2">
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={form.roundTrip}
+                      aria-label="Add round trip — return journey included"
+                      onClick={() => updateField("roundTrip", !form.roundTrip)}
+                      className={`flex w-full items-center justify-between rounded-[1.2rem] border px-5 py-4 text-sm transition-colors ${
+                        form.roundTrip
+                          ? "border-[var(--accent)] bg-[rgba(200,168,112,0.08)] text-white"
+                          : "border-white/10 bg-white/4 text-white/60 hover:border-white/20 hover:text-white/80"
+                      }`}
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs transition-colors ${
+                          form.roundTrip
+                            ? "border-[var(--accent)] bg-[var(--accent)] text-[#0a0a0e]"
+                            : "border-white/20 bg-transparent"
+                        }`}>
+                          {form.roundTrip ? "✓" : ""}
+                        </span>
+                        <span className="font-medium">Round Trip</span>
+                        <span className="text-white/40">— return journey included</span>
+                      </span>
+                      {form.roundTrip && (
+                        <span className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">
+                          Added
+                        </span>
+                      )}
+                    </button>
+                  </div>
+
                   <label className="block">
                     <span className="mb-2 block text-sm text-white/72">Date</span>
                     <input
@@ -844,11 +1018,11 @@ export default function AnytimeAnywhereLimoWebsite({
                   </div>
                 </div>
 
-                <div className="glass-panel mt-5 rounded-[1.7rem] p-5">
+                <div className="glass-panel mt-5 rounded-[1.2rem] p-5">
                   <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div>
                       <p className="lux-section-label !mb-0">Live pricing</p>
-                      <h3 className="mt-3 font-display text-[2rem] leading-none text-white md:text-[3rem]">
+                      <h3 className="mt-3 font-display text-[1.6rem] leading-none text-white md:text-[2.4rem]">
                         Estimated total {formatCurrency(estimate.total)}
                       </h3>
                     </div>
@@ -858,7 +1032,10 @@ export default function AnytimeAnywhereLimoWebsite({
                   </div>
 
                   <div className="mt-5 grid gap-3 text-sm text-white/64 sm:grid-cols-2">
-                    <p>Base rate: {formatCurrency(estimate.baseRate)}</p>
+                    <p>One-way rate: {formatCurrency(estimate.baseRate)}</p>
+                    {estimate.roundTripSurcharge > 0 && (
+                      <p className="text-[var(--accent-strong)]">Round trip: +{formatCurrency(estimate.roundTripSurcharge)}</p>
+                    )}
                     <p>Estimated gratuity: {formatCurrency(estimate.gratuity)}</p>
                     <p>After-hours fee: {formatCurrency(estimate.afterHoursFee)}</p>
                     <p>Weekend fee: {formatCurrency(estimate.weekendFee)}</p>
@@ -869,12 +1046,21 @@ export default function AnytimeAnywhereLimoWebsite({
                   <p className="mt-4 text-sm leading-7 text-white/48">
                     {bookingUi.pricingNote}
                   </p>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/8 pt-4">
+                    <span className="text-xs text-white/36 uppercase tracking-[0.2em]">We accept</span>
+                    {["Card", "Cash", "Venmo", "Zelle"].map((method) => (
+                      <span key={method} className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-xs text-white/54">
+                        {method}
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubmitting || !hasVehicles}
-                  className="lux-button mt-5 inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#11151d] shadow-[0_18px_42px_rgba(210,176,107,0.22)] hover:bg-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-75"
+                  className="lux-button mt-5 inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e] shadow-[0_18px_42px_rgba(210,176,107,0.22)] hover:bg-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-75"
                 >
                   {isSubmitting
                     ? "Saving booking..."
@@ -882,14 +1068,17 @@ export default function AnytimeAnywhereLimoWebsite({
                       ? bookingUi.submitButtonLabel
                       : bookingUi.unavailableButtonLabel}
                 </button>
+                <p className="mt-4 text-center text-xs text-white/36">
+                  A confirmation will be sent to your email once your booking is reviewed and accepted.
+                </p>
               </form>
             </aside>
           </div>
         </section>
 
-        <section className="px-5 pb-6 pt-1">
+        <section className="relative z-10 px-5 pb-5 pt-1">
           <div className="limo-container">
-            <div className="proof-panel rounded-[1.8rem] px-6 py-5 md:px-7">
+            <div className="proof-panel rounded-[1.2rem] px-6 py-5 md:px-7">
               <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
                 <p className="text-base leading-8 text-white/84">
                   {proofContent.text}
@@ -905,11 +1094,134 @@ export default function AnytimeAnywhereLimoWebsite({
             </div>
           </div>
         </section>
+        </div>
 
-        <section id="how-it-works" className="px-5 py-20 md:py-24">
+        <section id="rates" className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
+          <div className="limo-container">
+            <p className="lux-section-label">Pricing</p>
+            <h2 className="max-w-[760px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
+              Clear, flat rates. No surprises.
+            </h2>
+            <p className="mt-5 max-w-[680px] text-lg leading-8 text-white/66">
+              You see the price before you book. No meters, no surge pricing, no hidden fees.
+            </p>
+
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              <article className="glass-panel soft-lift rounded-[1.4rem] p-7 md:col-span-1">
+                <p className="lux-section-label !mb-0 text-[0.7rem]">Airport Transfers</p>
+                <h3 className="mt-4 font-display text-[1.8rem] leading-tight text-white">Boston Logan</h3>
+                <div className="mt-5 space-y-3 border-t border-white/8 pt-5 text-sm text-white/68">
+                  <div className="flex items-center justify-between">
+                    <span>Portland → Boston Logan</span>
+                    <span className="font-semibold text-white">$650</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Round Trip</span>
+                    <span className="font-semibold text-white">$1,200</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-white/8 pt-3">
+                    <span>Portland → PWM Airport</span>
+                    <span className="font-semibold text-white">$75–$120</span>
+                  </div>
+                </div>
+              </article>
+
+              <article className="glass-panel soft-lift rounded-[1.4rem] p-7 md:col-span-1">
+                <p className="lux-section-label !mb-0 text-[0.7rem]">Hourly & Events</p>
+                <h3 className="mt-4 font-display text-[1.8rem] leading-tight text-white">By the Hour</h3>
+                <div className="mt-5 space-y-3 border-t border-white/8 pt-5 text-sm text-white/68">
+                  <div className="flex items-center justify-between">
+                    <span>Weekday rate</span>
+                    <span className="font-semibold text-white">$110 / hr</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Weekend / events</span>
+                    <span className="font-semibold text-white">$125–$140 / hr</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-white/8 pt-3">
+                    <span>Minimum booking</span>
+                    <span className="font-semibold text-white">3 hours</span>
+                  </div>
+                </div>
+              </article>
+
+              <article className="glass-panel soft-lift rounded-[1.4rem] p-7 md:col-span-1">
+                <p className="lux-section-label !mb-0 text-[0.7rem]">Additional Charges</p>
+                <h3 className="mt-4 font-display text-[1.8rem] leading-tight text-white">Good to Know</h3>
+                <div className="mt-5 space-y-3 border-t border-white/8 pt-5 text-sm text-white/68">
+                  <div className="flex items-center justify-between">
+                    <span>Wait time</span>
+                    <span className="font-semibold text-white">$40 / hr</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Extra stops</span>
+                    <span className="font-semibold text-white">$25–$50</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>After 10PM</span>
+                    <span className="font-semibold text-white">+15%</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-white/8 pt-3">
+                    <span>Holidays / events</span>
+                    <span className="font-semibold text-white">+20%</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <p className="mt-6 text-sm text-white/38">
+              Long-distance travel is priced at base rate + $1.50/mile. All rates exclude tolls and gratuity. Contact us for a custom quote on multi-day or out-of-state bookings.
+            </p>
+          </div>
+        </section>
+
+        <section className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
+          <div className="limo-container">
+            <p className="lux-section-label">Why Autovise</p>
+            <h2 className="max-w-[760px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
+              The standard every ride is held to.
+            </h2>
+            <p className="mt-5 max-w-[680px] text-lg leading-8 text-white/66">
+              Autovise Black Car was built around one standard — show up professionally, on time, every single time. Transparent flat rates, a spotless Yukon Denali, and a chauffeur who treats every ride like it matters. Because it does.
+            </p>
+
+            <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+              {[
+                {
+                  icon: "✦",
+                  title: "Nationwide Reach",
+                  text: "East Coast based, nationwide capable. We coordinate transportation across the United States for clients who need reliability beyond the region.",
+                },
+                {
+                  icon: "✦",
+                  title: "Punctual. Always.",
+                  text: "Real-time flight tracking, early arrivals, professional presentation. You should never wait for your driver.",
+                },
+                {
+                  icon: "✦",
+                  title: "Transparent Flat Rates",
+                  text: "No surge pricing, no meter running. You know the exact cost before you book — and it stays that way.",
+                },
+                {
+                  icon: "✦",
+                  title: "Available 24/7",
+                  text: "Early morning departures, late-night arrivals, cross-state runs. We're available when you need us, not just when it's convenient.",
+                },
+              ].map((item) => (
+                <article key={item.title} className="glass-panel fade-in soft-lift rounded-[1.4rem] p-7">
+                  <p className="text-[var(--accent)] text-lg mb-5">{item.icon}</p>
+                  <h3 className="font-display text-[1.5rem] leading-tight text-white">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-white/60">{item.text}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="how-it-works" className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
           <div className="limo-container">
             <p className="lux-section-label">{howItWorksContent.label}</p>
-            <h2 className="max-w-[780px] font-display text-[2.6rem] leading-[1.02] text-white md:text-[4.1rem]">
+            <h2 className="max-w-[780px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
               {howItWorksContent.title}
             </h2>
             <p className="mt-5 max-w-[720px] text-lg leading-8 text-white/66">
@@ -924,10 +1236,10 @@ export default function AnytimeAnywhereLimoWebsite({
           </div>
         </section>
 
-        <section id="services" className="px-5 py-20 md:py-24">
+        <section id="services" className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
           <div className="limo-container">
             <p className="lux-section-label">{servicesSection.label}</p>
-            <h2 className="max-w-[820px] font-display text-[2.6rem] leading-[1.02] text-white md:text-[4.1rem]">
+            <h2 className="max-w-[820px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
               {servicesSection.title}
             </h2>
             <p className="mt-5 max-w-[760px] text-lg leading-8 text-white/66">
@@ -946,12 +1258,12 @@ export default function AnytimeAnywhereLimoWebsite({
           </div>
         </section>
 
-        <section id="fleet" className="px-5 py-20 md:py-24">
+        <section id="fleet" className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
           <div className="limo-container">
             <div className="grid gap-5 lg:grid-cols-[1fr_0.8fr] lg:items-end">
               <div>
                 <p className="lux-section-label">{fleetSection.label}</p>
-                <h2 className="max-w-[820px] font-display text-[2.6rem] leading-[1.02] text-white md:text-[4.1rem]">
+                <h2 className="max-w-[820px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
                   {fleetSection.title}
                 </h2>
               </div>
@@ -981,11 +1293,11 @@ export default function AnytimeAnywhereLimoWebsite({
           </div>
         </section>
 
-        <section id="reviews" className="px-5 py-20 md:py-24">
+        <section id="reviews" className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
           <div className="limo-container">
-            <div className="glass-panel rounded-[2.2rem] p-7 md:p-10">
+            <div className="glass-panel rounded-[1.4rem] p-7 md:p-10">
               <p className="lux-section-label">{reviewsSection.label}</p>
-              <h2 className="max-w-[760px] font-display text-[2.6rem] leading-[1.02] text-white md:text-[4.1rem]">
+              <h2 className="max-w-[760px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
                 {reviewsSection.title}
               </h2>
 
@@ -993,16 +1305,27 @@ export default function AnytimeAnywhereLimoWebsite({
                 {testimonialEntries.map((item, index) => (
                   <article
                     key={`${item.name}-${index}`}
-                    className="glass-panel soft-lift rounded-[1.8rem] p-7"
+                    className="glass-panel soft-lift rounded-[1.4rem] p-7"
                   >
-                    <p className="font-display text-5xl leading-none text-[var(--accent)]">
-                      &quot;
-                    </p>
-                    <p className="mt-3 text-sm leading-7 text-white/70">{item.quote}</p>
-                    <p className="mt-6 text-base font-semibold text-white">{item.name}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.24em] text-white/42">
-                      {item.role}
-                    </p>
+                    <div className="flex items-center gap-0.5 mb-4">
+                      {[1,2,3,4,5].map((star) => (
+                        <svg key={star} width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M7 1L8.63 4.94L13 5.27L9.77 8.03L10.85 12.27L7 9.9L3.15 12.27L4.23 8.03L1 5.27L5.37 4.94L7 1Z" fill="var(--accent)" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="text-sm leading-7 text-white/70">{item.quote}</p>
+                    <div className="mt-6 flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full border border-[var(--line-strong)] bg-white/6 flex items-center justify-center text-xs font-semibold text-[var(--accent)]">
+                        {item.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">{item.name}</p>
+                        <p className="text-xs uppercase tracking-[0.24em] text-white/42">
+                          {item.role}
+                        </p>
+                      </div>
+                    </div>
                   </article>
                 ))}
               </div>
@@ -1010,22 +1333,84 @@ export default function AnytimeAnywhereLimoWebsite({
           </div>
         </section>
 
-        <section id="contact" className="px-5 py-20 md:py-24">
+        <section id="faq" className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
+          <div className="limo-container">
+            <p className="lux-section-label">FAQ</p>
+            <h2 className="max-w-[760px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
+              Common questions answered.
+            </h2>
+
+            <div className="mt-10 grid gap-4 md:grid-cols-2">
+              {[
+                {
+                  q: "Do you track my flight?",
+                  a: "Yes. We monitor your flight in real time. If your flight is delayed, your chauffeur adjusts — you won't be charged extra for flight delays outside your control.",
+                },
+                {
+                  q: "What payment methods do you accept?",
+                  a: "We accept all major credit and debit cards, cash, Venmo, and Zelle. Payment details are confirmed at booking.",
+                },
+                {
+                  q: "What is your cancellation policy?",
+                  a: "Free cancellation up to 24 hours before your scheduled pickup. Cancellations within 24 hours are subject to a 50% charge. No-shows are billed in full.",
+                },
+                {
+                  q: "Will I get a confirmation after booking?",
+                  a: "Yes. Once your request is received and confirmed, we'll send a booking confirmation to your email with all trip details and your chauffeur's contact information.",
+                },
+                {
+                  q: "Is gratuity included in the price?",
+                  a: "An 18% gratuity is included in your estimate. Additional gratuity is always appreciated but never expected.",
+                },
+                {
+                  q: "How far in advance should I book?",
+                  a: "We recommend at least 24–48 hours in advance for standard trips. For weddings and events, book as early as possible. Last-minute requests are handled based on availability — call or text us directly.",
+                },
+                {
+                  q: "Do you do long-distance trips outside Maine?",
+                  a: "Yes. We travel throughout New England and beyond. Long-distance trips are priced at our base rate plus $1.50/mile. Contact us for a custom quote.",
+                },
+                {
+                  q: "Are you licensed and insured?",
+                  a: "Yes. LuxTime Black Car is fully licensed for commercial passenger transport and carries comprehensive liability insurance on every trip.",
+                },
+              ].map((item) => (
+                <article key={item.q} className="glass-panel rounded-[1.4rem] p-6">
+                  <h3 className="font-semibold text-white">{item.q}</h3>
+                  <p className="mt-3 text-sm leading-7 text-white/60">{item.a}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="contact" className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
           <div className="limo-container">
             <p className="lux-section-label">{contactSection.label}</p>
             <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
               <div>
-                <h2 className="max-w-[760px] font-display text-[2.6rem] leading-[1.02] text-white md:text-[4.1rem]">
+                <h2 className="max-w-[760px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
                   {contactSection.title}
                 </h2>
                 <p className="mt-5 max-w-[720px] text-lg leading-8 text-white/66">
                   {contactSection.description}
                 </p>
 
+                <div className="mt-6 inline-flex flex-wrap items-center gap-2 rounded-[1rem] border border-[var(--line-strong)] bg-white/3 px-4 py-3 text-sm text-white/60">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                  <span>Primary operations — <strong className="text-white/80">Maine · Massachusetts · New York</strong></span>
+                  <span className="hidden sm:inline text-white/24">·</span>
+                  <span className="text-[var(--accent)]">Nationwide service available by request</span>
+                </div>
+
+                <p className="mt-4 text-sm text-white/40">
+                  Free cancellation up to 24 hours before pickup. Wait time billed at $40/hr. Extra stops $25–$50.
+                </p>
+
                 <div className="mt-8 flex flex-wrap gap-4">
                   <a
                     href="#booking"
-                    className="lux-button inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--accent)] px-8 text-sm font-bold text-[#11151d] hover:bg-[var(--accent-dark)]"
+                    className="lux-button inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--accent)] px-8 text-sm font-bold text-[#0a0a0e] hover:bg-[var(--accent-dark)]"
                   >
                     {contactSection.primaryButtonLabel}
                   </a>
@@ -1039,7 +1424,7 @@ export default function AnytimeAnywhereLimoWebsite({
               </div>
 
               <div className="grid gap-4">
-                <article className="glass-panel soft-lift rounded-[1.8rem] p-6">
+                <article className="glass-panel soft-lift rounded-[1.4rem] p-6">
                   <p className="lux-section-label !mb-0 text-[0.7rem]">{contactSection.phoneLabel}</p>
                   <a
                     href={`tel:${String(contactSection.phoneValue ?? "").replace(/\s+/g, "")}`}
@@ -1049,7 +1434,7 @@ export default function AnytimeAnywhereLimoWebsite({
                   </a>
                 </article>
 
-                <article className="glass-panel soft-lift rounded-[1.8rem] p-6">
+                <article className="glass-panel soft-lift rounded-[1.4rem] p-6">
                   <p className="lux-section-label !mb-0 text-[0.7rem]">{contactSection.emailLabel}</p>
                   <a
                     href={`mailto:${contactSection.emailValue}`}
@@ -1059,7 +1444,7 @@ export default function AnytimeAnywhereLimoWebsite({
                   </a>
                 </article>
 
-                <article className="glass-panel soft-lift rounded-[1.8rem] p-6">
+                <article className="glass-panel soft-lift rounded-[1.4rem] p-6">
                   <p className="lux-section-label !mb-0 text-[0.7rem]">{contactSection.availabilityLabel}</p>
                   <p className="mt-4 font-display text-[1.9rem] leading-tight text-white">
                     {contactSection.availabilityValue}
@@ -1071,30 +1456,49 @@ export default function AnytimeAnywhereLimoWebsite({
         </section>
       </main>
 
-      <footer className="border-t border-white/8 px-5 pb-14 pt-7">
-        <div className="limo-container flex flex-col gap-3 text-sm text-white/54 md:flex-row md:items-center md:justify-between">
-          <p>{footerContent.legal}</p>
-          <p>
-            {footerContent.description}
-          </p>
+      <footer className="border-t border-[rgba(200,168,112,0.12)] px-5 pb-16 pt-10">
+        <div className="limo-container">
+          <div className="mb-8 flex flex-col gap-2">
+            <p className="font-display text-[1.6rem] leading-none tracking-[-0.02em] text-white/90">
+              {brandContent.name}
+            </p>
+            <p className="text-[0.68rem] uppercase tracking-[0.32em] text-[var(--accent)]">
+              {brandContent.subtitle}
+            </p>
+          </div>
+          <div className="border-t border-white/6 pt-7 flex flex-col gap-3 text-sm text-white/40 md:flex-row md:items-center md:justify-between">
+            <p>{footerContent.legal}</p>
+            <p>{footerContent.description}</p>
+          </div>
         </div>
       </footer>
 
+      <button
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="Back to top"
+        className={`fixed bottom-6 left-4 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(200,168,112,0.22)] bg-[rgba(10,10,14,0.88)] text-white/70 backdrop-blur-sm transition-all duration-300 hover:border-[var(--accent)] hover:text-white sm:bottom-8 sm:left-5 sm:h-11 sm:w-11 ${showScrollTop ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-4 pointer-events-none"}`}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 12V4M8 4L4 8M8 4L12 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
       <a
         href={contactPhoneHref}
-        aria-label={floatingActions.callLabel || "Call concierge"}
+        aria-label={`Call LuxTime Black Car: ${floatingActions.callLabel}`}
         className="floating-link floating-call hidden sm:inline-flex"
       >
-        <span className="floating-icon">*</span>
+        <span className="floating-icon" aria-hidden="true">✆</span>
         {floatingActions.callLabel}
       </a>
 
       <a
         href="#booking"
-        aria-label="Book your ride now"
+        aria-label="Go to booking form"
         className="floating-link floating-action"
       >
-        <span className="floating-icon">{"->"}</span>
+        <span className="floating-icon" aria-hidden="true">→</span>
         {floatingActions.bookLabel}
       </a>
     </div>

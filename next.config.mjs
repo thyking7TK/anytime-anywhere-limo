@@ -8,6 +8,18 @@ const nextConfig = {
   turbopack: {
     root: dirname,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.vercel-storage.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
