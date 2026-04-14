@@ -6,7 +6,8 @@ import {
   buildRideLocalTimestamp,
   calculateEstimate,
   formatRideLocalTimestamp,
-  getServiceById,
+  getAirportRouteById,
+  getBookingServiceById,
   getVehicleBySlug,
   normalizeBookingForm,
   validateBooking,
@@ -15,31 +16,52 @@ import { getCatalog } from "@/lib/catalog";
 import { insertBooking, listRecentBookings, updateBookingStatus } from "@/lib/bookings";
 import { isDatabaseConfigured } from "@/lib/database";
 import { sendBookingEmails } from "@/lib/email";
-import { getSiteContent } from "@/lib/site-content";
-import { getSiteServiceById } from "@/lib/site-content-shared";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const bookingStatuses = new Set(["pending", "confirmed", "completed", "cancelled"]);
+const bookingStatuses = new Set([
+  "new",
+  "quoted",
+  "confirmed",
+  "completed",
+  "cancelled",
+]);
 
 function createReference() {
-  return `AA-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
+  return `AV-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }
 
-function getResolvedServiceTitle(serviceId, siteContent) {
-  return (
-    getSiteServiceById(siteContent, serviceId)?.title ??
-    getServiceById(serviceId)?.title ??
-    serviceId
-  );
+function normalizeStoredStatus(status) {
+  return status === "pending" ? "new" : status;
 }
 
-function formatStoredBooking(record, siteContent) {
+function parseStoredJson(value) {
+  if (!value) {
+    return {};
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+
+  return value;
+}
+
+function formatStoredBooking(record) {
   const rideLocalValue =
     typeof record.ride_local_at === "string"
       ? record.ride_local_at.replace(" ", "T")
       : undefined;
+  const returnLocalValue =
+    typeof record.return_local_at === "string"
+      ? record.return_local_at.replace(" ", "T")
+      : undefined;
+  const quoteBreakdown = parseStoredJson(record.quote_breakdown);
 
   return {
     id: record.id,
@@ -48,20 +70,38 @@ function formatStoredBooking(record, siteContent) {
     email: record.email,
     phone: record.phone,
     service: record.service,
-    serviceTitle: getResolvedServiceTitle(record.service, siteContent),
+    serviceTitle: getBookingServiceById(record.service)?.title ?? record.service,
     vehicleSlug: record.vehicle_slug,
     vehicle: record.vehicle,
     pickup: record.pickup_location,
     dropoff: record.dropoff_location,
     passengers: record.passengers,
+    bags: record.bags,
     requests: record.special_requests,
     estimatedTotal: Math.round(record.estimated_total_cents / 100),
     estimatedDeposit: Math.round(record.estimated_deposit_cents / 100),
-    status: record.status,
+    status: normalizeStoredStatus(record.status),
     when:
       formatRideLocalTimestamp(rideLocalValue) ||
       String(record.ride_local_at ?? ""),
+    returnWhen:
+      formatRideLocalTimestamp(returnLocalValue) ||
+      (record.return_local_at ? String(record.return_local_at) : ""),
     createdAt: record.created_at,
+    roundTrip: Boolean(record.round_trip),
+    airportRouteId: record.airport_route_id,
+    airportRouteLabel: record.airport_route_label,
+    airline: record.airline,
+    flightNumber: record.flight_number,
+    requestedHours: record.requested_hours,
+    estimatedTripHours: record.estimated_trip_hours,
+    estimatedTripMiles: record.estimated_trip_miles,
+    estimatedStops: record.estimated_stops,
+    extraStops: record.extra_stops,
+    waitHours: record.wait_hours,
+    holidayOrEvent: record.holiday_or_event,
+    eventType: record.event_type,
+    quoteBreakdown,
   };
 }
 
@@ -103,9 +143,15 @@ export async function POST(request) {
 
   const estimate = calculateEstimate(form, catalog);
   const rideLocalAt = buildRideLocalTimestamp(form.date, form.time);
+  const returnLocalAt = form.roundTrip
+    ? buildRideLocalTimestamp(form.returnDate, form.returnTime)
+    : null;
   const selectedVehicle = getVehicleBySlug(form.vehicle, catalog);
-  const siteContent = await getSiteContent();
-  const serviceTitle = getResolvedServiceTitle(form.service, siteContent);
+  const selectedService = getBookingServiceById(form.service);
+  const airportRoute =
+    form.service === "airport"
+      ? getAirportRouteById(form.airportRouteId, catalog)
+      : null;
   const reference = createReference();
   const bookingForNotifications = {
     reference,
@@ -114,13 +160,27 @@ export async function POST(request) {
     email: form.email,
     phone: form.phone,
     service: form.service,
-    serviceTitle,
-    vehicle: selectedVehicle?.name ?? form.vehicle,
+    serviceTitle: selectedService?.title ?? form.service,
+    vehicle: selectedVehicle?.name ?? "Vehicle to be confirmed",
     pickup: form.pickup,
     dropoff: form.dropoff,
     rideLocalAt,
+    returnLocalAt,
     passengers: Number(form.passengers),
+    bags: Number(form.bags),
     requests: form.requests,
+    roundTrip: form.roundTrip,
+    airportRouteLabel: airportRoute?.label ?? "",
+    airline: form.airline,
+    flightNumber: form.flightNumber,
+    requestedHours: Number(form.requestedHours || 0),
+    estimatedTripHours: Number(form.estimatedTripHours || 0),
+    estimatedTripMiles: Number(form.estimatedTripMiles || 0),
+    estimatedStops: Number(form.estimatedStops || 0),
+    extraStops: Number(form.extraStops || 0),
+    waitHours: Number(form.waitHours || 0),
+    holidayOrEvent: form.holidayOrEvent,
+    eventType: form.eventType,
   };
 
   try {
@@ -130,16 +190,32 @@ export async function POST(request) {
       email: form.email,
       phone: form.phone,
       service: form.service,
-      vehicleSlug: form.vehicle,
-      vehicle: selectedVehicle?.name ?? form.vehicle,
+      vehicleSlug: form.vehicle || null,
+      vehicle: selectedVehicle?.name ?? "Vehicle to be confirmed",
       pickup: form.pickup,
       dropoff: form.dropoff,
       rideLocalAt,
       passengers: Number(form.passengers),
+      bags: Number(form.bags),
       requests: form.requests,
       estimatedTotalCents: estimate.total * 100,
-      estimatedDepositCents: estimate.deposit * 100,
-      status: "pending",
+      estimatedDepositCents: 0,
+      status: "new",
+      airportRouteId: airportRoute?.id ?? null,
+      airportRouteLabel: airportRoute?.label ?? null,
+      airline: form.airline,
+      flightNumber: form.flightNumber,
+      roundTrip: form.roundTrip,
+      returnLocalAt,
+      requestedHours: Number(form.requestedHours || 0) || null,
+      estimatedTripHours: Number(form.estimatedTripHours || 0) || null,
+      estimatedTripMiles: Number(form.estimatedTripMiles || 0) || null,
+      estimatedStops: Number(form.estimatedStops || 0),
+      extraStops: Number(form.extraStops || 0),
+      waitHours: Number(form.waitHours || 0),
+      holidayOrEvent: form.holidayOrEvent,
+      eventType: form.eventType,
+      quoteBreakdown: estimate,
     });
   } catch (error) {
     console.error("Failed to store booking", error);
@@ -172,11 +248,12 @@ export async function POST(request) {
         estimate,
         fullName: form.fullName,
         email: form.email,
-        service: serviceTitle,
-        vehicle: selectedVehicle?.name ?? form.vehicle,
+        service: selectedService?.title ?? form.service,
+        vehicle: selectedVehicle?.name ?? "Vehicle to be confirmed",
         pickup: form.pickup,
         dropoff: form.dropoff,
         when: formatRideLocalTimestamp(rideLocalAt),
+        returnWhen: returnLocalAt ? formatRideLocalTimestamp(returnLocalAt) : "",
       },
       emailStatus,
     },
@@ -203,11 +280,10 @@ export async function GET(request) {
   }
 
   try {
-    const siteContent = await getSiteContent();
     const bookings = await listRecentBookings();
 
     return NextResponse.json({
-      bookings: bookings.map((booking) => formatStoredBooking(booking, siteContent)),
+      bookings: bookings.map((booking) => formatStoredBooking(booking)),
     });
   } catch (error) {
     console.error("Failed to load bookings", error);
@@ -268,10 +344,8 @@ export async function PATCH(request) {
       );
     }
 
-    const siteContent = await getSiteContent();
-
     return NextResponse.json({
-      booking: formatStoredBooking(booking, siteContent),
+      booking: formatStoredBooking(booking),
     });
   } catch (error) {
     console.error("Failed to update booking status", error);

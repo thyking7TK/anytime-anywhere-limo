@@ -5,14 +5,16 @@ import { useCallback, useEffect, useState } from "react";
 
 import { formatCurrency } from "@/lib/booking";
 import {
+  bookingServices as quoteServices,
+  defaultAirportRoutes,
   defaultPricingSettings,
-  services as catalogServices,
+  slugifyAirportRouteLabel,
   slugifyVehicleName,
 } from "@/lib/catalog-shared";
 import { getDefaultSiteContent } from "@/lib/site-content-shared";
 
 const storageKey = "anytime-anywhere-admin-key";
-const bookingStatuses = ["pending", "confirmed", "completed", "cancelled"];
+const bookingStatuses = ["new", "quoted", "confirmed", "completed", "cancelled"];
 const vehicleImageLimit = 5;
 const sidebarSections = [
   ["overview", "Overview"],
@@ -21,7 +23,7 @@ const sidebarSections = [
   ["homepage-flow", "Homepage Flow"],
   ["services-reviews", "Services & Reviews"],
   ["contact-footer", "Contact & Footer"],
-  ["fleet-pricing", "Fleet & Pricing"],
+  ["fleet-pricing", "Fleet & Quotes"],
 ];
 
 const panelClassName =
@@ -78,6 +80,19 @@ function createEmptyVehicle(index = 0) {
   };
 }
 
+function createEmptyAirportRoute(index = 0) {
+  return {
+    id: `airport-route-${Date.now()}-${index}`,
+    label: "",
+    endpointA: "",
+    endpointB: "",
+    oneWayPrice: 0,
+    roundTripPrice: 0,
+    active: true,
+    displayOrder: index + 1,
+  };
+}
+
 function createEmptyHeroStat(index = 0) {
   return {
     value: `0${index + 1}`,
@@ -103,6 +118,8 @@ function createEmptyTestimonial(index = 0) {
 
 function statusTone(status) {
   switch (status) {
+    case "quoted":
+      return "border-fuchsia-300/30 bg-fuchsia-400/10 text-fuchsia-100";
     case "confirmed":
       return "border-emerald-300/30 bg-emerald-400/10 text-emerald-100";
     case "completed":
@@ -116,7 +133,7 @@ function statusTone(status) {
 
 function formatStatus(status) {
   const value = String(status ?? "").trim();
-  return value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : "Pending";
+  return value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : "New";
 }
 
 function Section({ id, label, title, description, actions, children }) {
@@ -362,7 +379,6 @@ export default function AdminDashboard() {
   function updateVehicle(index, field, value) {
     mutateCatalog((next) => {
       const vehicle = next.vehicles[index];
-      const previousSlug = vehicle.slug;
       const shouldRefreshSlug =
         field === "name" && String(vehicle.slug ?? "").startsWith("vehicle-");
 
@@ -375,29 +391,14 @@ export default function AdminDashboard() {
       }
 
       if (shouldRefreshSlug) {
-        const nextSlug = slugifyVehicleName(value) || previousSlug;
-
-        if (nextSlug !== previousSlug) {
-          vehicle.slug = nextSlug;
-
-          for (const service of catalogServices) {
-            next.pricingMatrix[service.id][nextSlug] =
-              next.pricingMatrix[service.id][previousSlug] ?? 0;
-            delete next.pricingMatrix[service.id][previousSlug];
-          }
-        }
+        vehicle.slug = slugifyVehicleName(value) || vehicle.slug;
       }
     });
   }
 
   function addVehicle() {
     mutateCatalog((next) => {
-      const vehicle = createEmptyVehicle(next.vehicles.length);
-      next.vehicles.push(vehicle);
-
-      for (const service of catalogServices) {
-        next.pricingMatrix[service.id][vehicle.slug] = 0;
-      }
+      next.vehicles.push(createEmptyVehicle(next.vehicles.length));
     });
   }
 
@@ -412,10 +413,6 @@ export default function AdminDashboard() {
 
       if (!vehicle) {
         return;
-      }
-
-      for (const service of catalogServices) {
-        delete next.pricingMatrix[service.id][vehicle.slug];
       }
     });
   }
@@ -433,21 +430,40 @@ export default function AdminDashboard() {
     });
   }
 
-  function updatePricing(serviceId, vehicleSlug, value) {
+  function updateAirportRoute(index, field, value) {
     mutateCatalog((next) => {
-      next.pricingMatrix[serviceId][vehicleSlug] = normalizeCurrencyInput(
-        value,
-        next.pricingMatrix[serviceId][vehicleSlug] ?? 0,
-      );
+      const route = next.airportRoutes[index];
+
+      if (!route) {
+        return;
+      }
+
+      if (field === "active") {
+        route.active = Boolean(value);
+        return;
+      }
+
+      if (field === "oneWayPrice" || field === "roundTripPrice") {
+        route[field] = normalizeCurrencyInput(value, route[field] ?? 0);
+        return;
+      }
+
+      route[field] = value;
+
+      if (field === "label" && String(route.id ?? "").startsWith("airport-route-")) {
+        route.id = slugifyAirportRouteLabel(value) || route.id;
+      }
     });
   }
 
   function updatePricingSetting(key, value) {
     mutateCatalog((next) => {
-      if (key === "gratuityRate") {
+      if (key === "mileageRate" || key === "lateNightPercent" || key === "holidayPercent") {
         next.pricingSettings[key] = normalizeDecimalInput(
           value,
-          defaultPricingSettings.gratuityRate,
+          defaultPricingSettings[key],
+          0,
+          key.endsWith("Percent") ? 1 : Number.MAX_SAFE_INTEGER,
         );
         return;
       }
@@ -455,6 +471,43 @@ export default function AdminDashboard() {
       const fallback = defaultPricingSettings[key];
       const max = key.includes("Hour") ? 23 : Number.MAX_SAFE_INTEGER;
       next.pricingSettings[key] = normalizeIntegerInput(value, fallback, 0, max);
+    });
+  }
+
+  function addAirportRoute() {
+    mutateCatalog((next) => {
+      next.airportRoutes = Array.isArray(next.airportRoutes) ? next.airportRoutes : [];
+      next.airportRoutes.push(createEmptyAirportRoute(next.airportRoutes.length));
+    });
+  }
+
+  function removeAirportRoute(index) {
+    if (!Array.isArray(catalog?.airportRoutes) || catalog.airportRoutes.length <= 1) {
+      setCatalogMessage("Keep at least one airport route in the catalog.");
+      return;
+    }
+
+    mutateCatalog((next) => {
+      next.airportRoutes.splice(index, 1);
+    });
+  }
+
+  function moveAirportRoute(index, direction) {
+    mutateCatalog((next) => {
+      const nextIndex = index + direction;
+
+      if (
+        !Array.isArray(next.airportRoutes) ||
+        nextIndex < 0 ||
+        nextIndex >= next.airportRoutes.length
+      ) {
+        return;
+      }
+
+      const routes = [...next.airportRoutes];
+      const [route] = routes.splice(index, 1);
+      routes.splice(nextIndex, 0, route);
+      next.airportRoutes = routes;
     });
   }
 
@@ -588,8 +641,11 @@ export default function AdminDashboard() {
             ...vehicle,
             displayOrder: index + 1,
           })),
-          pricingMatrix: catalog.pricingMatrix,
           pricingSettings: catalog.pricingSettings,
+          airportRoutes: (catalog.airportRoutes ?? []).map((route, index) => ({
+            ...route,
+            displayOrder: index + 1,
+          })),
         }),
       });
 
@@ -601,7 +657,7 @@ export default function AdminDashboard() {
 
       setCatalog(data.catalog);
       await loadDashboard(adminKey);
-      setCatalogMessage("Fleet and pricing saved.");
+      setCatalogMessage("Fleet and quote settings saved.");
       return true;
     } catch (error) {
       setCatalogMessage(error.message || "Could not save the catalog.");
@@ -665,7 +721,7 @@ export default function AdminDashboard() {
           </h1>
           <p className="mt-4 text-sm leading-7 text-white/66">
             Enter your admin key to manage bookings, homepage content, vehicles,
-            pricing, and vehicle photos from one place.
+            quote settings, airport routes, and vehicle photos from one place.
           </p>
           <form onSubmit={unlockDashboard} className="mt-8 grid gap-4">
             <input
@@ -690,22 +746,31 @@ export default function AdminDashboard() {
   }
 
   const activeVehicles = catalog?.vehicles?.filter((vehicle) => vehicle.active).length ?? 0;
-  const pendingBookings = bookings.filter((booking) => booking.status === "pending").length;
+  const pendingBookings = bookings.filter((booking) => booking.status === "new").length;
+  const quotedBookings = bookings.filter((booking) => booking.status === "quoted").length;
   const confirmedBookings = bookings.filter((booking) => booking.status === "confirmed").length;
   const bookingValue = bookings.reduce(
     (total, booking) => total + Number(booking.estimatedTotal ?? 0),
     0,
   );
-  const lowestStartingRate =
-    catalog?.vehicles?.length && catalog?.pricingMatrix
-      ? Math.min(
-          ...catalogServices.flatMap((service) =>
-            catalog.vehicles.map(
-              (vehicle) => catalog.pricingMatrix?.[service.id]?.[vehicle.slug] ?? 0,
-            ),
-          ),
-        )
-      : 0;
+  const hourlyStart = catalog?.pricingSettings
+    ? Math.max(
+        Number(catalog.pricingSettings.minimumQuote ?? 0),
+        Number(catalog.pricingSettings.hourlyMinimum ?? 0) *
+          Number(catalog.pricingSettings.weekdayHourlyRate ?? 0),
+      )
+    : 0;
+  const airportRateCandidates =
+    catalog?.airportRoutes?.filter((route) => route.active).map((route) => Number(route.oneWayPrice ?? 0)) ?? [];
+  const airportStart = airportRateCandidates.length
+    ? Math.min(...airportRateCandidates)
+    : hourlyStart;
+  const startingRateCandidates = [hourlyStart, airportStart].filter(
+    (value) => Number.isFinite(value) && value > 0,
+  );
+  const lowestStartingRate = startingRateCandidates.length
+    ? Math.min(...startingRateCandidates)
+    : 0;
   function renderSiteContentAction() {
     return (
       <button
@@ -732,7 +797,7 @@ export default function AdminDashboard() {
             </h1>
             <p className="mt-3 max-w-[800px] text-sm leading-7 text-white/66">
               Update the live homepage copy, manage bookings, change vehicles and
-              pricing, and keep the public site current without touching code.
+              quote settings, and keep the public site current without touching code.
             </p>
           </div>
 
@@ -845,14 +910,14 @@ export default function AdminDashboard() {
                   disabled={savingCatalog || savingAllChanges}
                   className={buttonClassName}
                 >
-                  {savingCatalog ? "Saving fleet..." : "Save vehicles & pricing only"}
+                  {savingCatalog ? "Saving quotes..." : "Save fleet & quote settings only"}
                 </button>
               </div>
 
               <p className="mt-4 text-xs leading-6 text-white/52">
                 Hero text, services, testimonials, contact details, and footer edits use
-                homepage content save. Vehicles, photos, and pricing use the fleet save.
-                Save everything handles both together.
+                homepage content save. Vehicles, photos, airport routes, and quote settings
+                use the operations save. Save everything handles both together.
               </p>
 
               {siteMessage ? <p className="mt-4 text-sm text-[var(--accent-strong)]">{siteMessage}</p> : null}
@@ -875,30 +940,42 @@ export default function AdminDashboard() {
                 description="A quick read on what is live right now so you can move straight to the right section."
               >
                 <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
-                  <MetricCard label="Pending bookings" value={pendingBookings} text="Requests still waiting for follow-up or confirmation." />
+                  <MetricCard label="New bookings" value={pendingBookings} text="Fresh requests that still need a quote or response." />
+                  <MetricCard label="Quoted rides" value={quotedBookings} text="Trips that have been priced and are waiting for confirmation." />
                   <MetricCard label="Confirmed rides" value={confirmedBookings} text="Bookings already moved into a more final state." />
                   <MetricCard label="Active vehicles" value={activeVehicles} text="Vehicles customers can currently choose on the public site." />
-                  <MetricCard label="Quoted value" value={formatCurrency(bookingValue)} text="Total estimated booking value across the saved list." />
                 </div>
 
                 <div className="mt-6 grid gap-4 lg:grid-cols-2">
                   <div className="rounded-[1.7rem] border border-white/10 bg-black/20 p-5 text-sm leading-7 text-white/66">
                     The CMS sections below control brand copy, hero content, proof,
                     how-it-works steps, service descriptions, testimonials, contact
-                    details, the footer, the vehicle lineup, photo galleries, and
-                    the live pricing matrix.
+                    details, the footer, the vehicle lineup, photo galleries, airport
+                    flat-rate routes, and the live pricing engine.
                   </div>
                   <div className="rounded-[1.7rem] border border-white/10 bg-black/20 p-5">
                     <p className="text-xs uppercase tracking-[0.24em] text-white/40">
-                      Pricing baseline
+                      Estimated pipeline value
                     </p>
                     <p className="mt-4 font-display text-4xl leading-none text-white">
-                      from {formatCurrency(lowestStartingRate)}
+                      {formatCurrency(bookingValue)}
                     </p>
                     <p className="mt-4 text-sm leading-7 text-white/66">
-                      Lowest starting rate across the live pricing matrix.
+                      Current total of saved request estimates.
                     </p>
                   </div>
+                </div>
+
+                <div className="mt-4 rounded-[1.7rem] border border-white/10 bg-black/20 p-5">
+                  <p className="text-xs uppercase tracking-[0.24em] text-white/40">
+                    Starting rate snapshot
+                  </p>
+                  <p className="mt-4 font-display text-4xl leading-none text-white">
+                    from {formatCurrency(lowestStartingRate)}
+                  </p>
+                  <p className="mt-4 text-sm leading-7 text-white/66">
+                    Lowest starting rate across the live hourly and flat-rate airport quote settings.
+                  </p>
                 </div>
               </Section>
 
@@ -906,7 +983,7 @@ export default function AdminDashboard() {
                 id="bookings"
                 label="Bookings"
                 title="Recent booking requests"
-                description="Each saved booking is here with live status controls for your workflow."
+                description="Each saved booking includes the quote breakdown, trip details, and live status controls for your workflow."
               >
                 <div className="grid gap-4">
                   {bookings.map((booking) => (
@@ -931,6 +1008,35 @@ export default function AdminDashboard() {
                           <p className="text-sm text-white/62">
                             {booking.when} | {formatCurrency(booking.estimatedTotal)}
                           </p>
+                          {booking.returnWhen ? (
+                            <p className="text-sm text-white/52">Return: {booking.returnWhen}</p>
+                          ) : null}
+                          {booking.airportRouteLabel ? (
+                            <p className="text-sm text-white/52">Airport route: {booking.airportRouteLabel}</p>
+                          ) : null}
+                          {booking.airline || booking.flightNumber ? (
+                            <p className="text-sm text-white/52">
+                              {booking.airline ? `Airline: ${booking.airline}` : ""}
+                              {booking.airline && booking.flightNumber ? " | " : ""}
+                              {booking.flightNumber ? `Flight: ${booking.flightNumber}` : ""}
+                            </p>
+                          ) : null}
+                          {Array.isArray(booking.quoteBreakdown?.lineItems) &&
+                          booking.quoteBreakdown.lineItems.length > 0 ? (
+                            <div className="mt-2 rounded-[1rem] border border-white/8 bg-white/4 p-3 text-sm text-white/60">
+                              <p className="text-xs uppercase tracking-[0.22em] text-white/38">
+                                Quote breakdown
+                              </p>
+                              <div className="mt-3 grid gap-2">
+                                {booking.quoteBreakdown.lineItems.map((item) => (
+                                  <div key={`${booking.id}-${item.key}`} className="flex items-center justify-between gap-4">
+                                    <span>{item.label}</span>
+                                    <span>{formatCurrency(item.amount)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
                           {booking.requests ? (
                             <p className="text-sm text-white/52">Notes: {booking.requests}</p>
                           ) : null}
@@ -1163,14 +1269,14 @@ export default function AdminDashboard() {
               <Section
                 id="fleet-pricing"
                 label="Operations"
-                title="Fleet, vehicle media, and pricing"
+                title="Fleet and quote settings"
                 actions={
                   <div className="flex flex-wrap gap-3">
                     <button type="button" onClick={addVehicle} className={buttonClassName}>
                       Add vehicle
                     </button>
                     <button type="button" onClick={saveCatalog} disabled={savingCatalog} className={primaryButtonClassName}>
-                      {savingCatalog ? "Saving..." : "Save fleet & pricing"}
+                      {savingCatalog ? "Saving..." : "Save fleet & quotes"}
                     </button>
                   </div>
                 }
@@ -1257,61 +1363,113 @@ export default function AdminDashboard() {
                     ))}
                   </div>
 
-                  <div className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5">
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full border-separate border-spacing-y-3 text-left text-sm">
-                        <thead>
-                          <tr className="text-white/45">
-                            <th className="pr-4">Service</th>
-                            {catalog.vehicles.map((vehicle) => (
-                              <th key={vehicle.slug} className="pr-4">{vehicle.name || "Untitled vehicle"}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {catalogServices.map((service) => (
-                            <tr key={service.id}>
-                              <td className="pr-4 text-white">{service.title}</td>
-                              {catalog.vehicles.map((vehicle) => (
-                                <td key={vehicle.slug} className="pr-4">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={catalog.pricingMatrix?.[service.id]?.[vehicle.slug] ?? 0}
-                                    onChange={(event) => updatePricing(service.id, vehicle.slug, event.target.value)}
-                                    className="w-28 rounded-[0.95rem] border border-white/10 bg-white/6 px-3 py-2 text-sm text-white outline-none"
-                                  />
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+                    <div className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.24em] text-white/42">
+                            Quote engine settings
+                          </p>
+                          <p className="mt-2 text-sm text-white/60">
+                            These values power hourly, airport, and custom trip pricing across the public site.
+                          </p>
+                        </div>
+                        <div className="rounded-full border border-white/10 bg-white/4 px-3 py-1.5 text-xs uppercase tracking-[0.2em] text-[var(--accent)]">
+                          Autovise rules
+                        </div>
+                      </div>
+
+                      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        {[
+                          ["weekdayHourlyRate", "Weekday hourly rate"],
+                          ["weekendHourlyRate", "Weekend / peak hourly rate"],
+                          ["hourlyMinimum", "Hourly minimum (hours)"],
+                          ["customHourlyBasis", "Custom hourly basis"],
+                          ["mileageRate", "Mileage rate"],
+                          ["profitBuffer", "Profit buffer"],
+                          ["waitRate", "Wait time rate"],
+                          ["stopFee", "Default stop fee"],
+                          ["minimumQuote", "Minimum quote threshold"],
+                          ["lateNightStartHour", "Late-night start hour"],
+                          ["lateNightEndHour", "Late-night end hour"],
+                          ["lateNightPercent", "Late-night surcharge (decimal)"],
+                          ["holidayPercent", "Holiday / event surcharge (decimal)"],
+                        ].map(([field, label]) => (
+                          <TextField
+                            key={field}
+                            label={label}
+                            type="number"
+                            value={catalog.pricingSettings?.[field] ?? 0}
+                            onChange={(event) => updatePricingSetting(field, event.target.value)}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="mt-6 rounded-[1.2rem] border border-white/8 bg-white/4 p-4 text-sm leading-7 text-white/62">
+                        {quoteServices.map((service) => (
+                          <p key={service.id}>
+                            <span className="font-semibold text-white">{service.title}:</span>{" "}
+                            {service.text}
+                          </p>
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                      {[
-                        ["afterHoursFee", "After-hours fee"],
-                        ["weekendFee", "Weekend fee"],
-                        ["specialRequestFee", "Special request fee"],
-                        ["extraPassengerFee", "Extra passenger fee"],
-                        ["afterHoursStartHour", "After-hours start (0-23)"],
-                        ["afterHoursEndHour", "After-hours end (0-23)"],
-                      ].map(([field, label]) => (
-                        <TextField
-                          key={field}
-                          label={label}
-                          type="number"
-                          value={catalog.pricingSettings?.[field] ?? 0}
-                          onChange={(event) => updatePricingSetting(field, event.target.value)}
-                        />
-                      ))}
-                      <TextField
-                        label="Gratuity rate (decimal)"
-                        type="number"
-                        value={catalog.pricingSettings?.gratuityRate ?? 0}
-                        onChange={(event) => updatePricingSetting("gratuityRate", event.target.value)}
-                      />
+                    <div className="rounded-[1.6rem] border border-white/8 bg-black/20 p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.24em] text-white/42">
+                            Flat-rate airport routes
+                          </p>
+                          <p className="mt-2 text-sm text-white/60">
+                            These configured routes return instant airport quotes on the booking form.
+                          </p>
+                        </div>
+                        <button type="button" onClick={addAirportRoute} className={buttonClassName}>
+                          Add route
+                        </button>
+                      </div>
+
+                      <div className="mt-5 grid gap-4">
+                        {(catalog.airportRoutes ?? defaultAirportRoutes).map((route, index) => (
+                          <div key={route.id || index} className="rounded-[1.2rem] border border-white/8 bg-white/4 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-xs uppercase tracking-[0.24em] text-white/42">
+                                Airport route {index + 1}
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                <button type="button" onClick={() => moveAirportRoute(index, -1)} disabled={index === 0} className={buttonClassName}>
+                                  Up
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => moveAirportRoute(index, 1)}
+                                  disabled={index === (catalog.airportRoutes ?? []).length - 1}
+                                  className={buttonClassName}
+                                >
+                                  Down
+                                </button>
+                                <button type="button" onClick={() => removeAirportRoute(index)} className={buttonClassName}>
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                              <TextField label="Route label" value={route.label} onChange={(event) => updateAirportRoute(index, "label", event.target.value)} />
+                              <TextField label="Route id" value={route.id} onChange={(event) => updateAirportRoute(index, "id", event.target.value)} />
+                              <TextField label="Endpoint A" value={route.endpointA} onChange={(event) => updateAirportRoute(index, "endpointA", event.target.value)} />
+                              <TextField label="Endpoint B" value={route.endpointB} onChange={(event) => updateAirportRoute(index, "endpointB", event.target.value)} />
+                              <TextField label="One-way price" type="number" value={route.oneWayPrice ?? 0} onChange={(event) => updateAirportRoute(index, "oneWayPrice", event.target.value)} />
+                              <TextField label="Round-trip price" type="number" value={route.roundTripPrice ?? 0} onChange={(event) => updateAirportRoute(index, "roundTripPrice", event.target.value)} />
+                              <label className="inline-flex items-center gap-3 rounded-[1rem] border border-white/8 bg-white/4 px-4 py-3 text-sm text-white/74 lg:col-span-2">
+                                <input type="checkbox" checked={route.active} onChange={(event) => updateAirportRoute(index, "active", event.target.checked)} />
+                                Offer this route as an instant airport quote
+                              </label>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>

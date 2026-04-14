@@ -4,14 +4,16 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import {
+  bookingServices,
   calculateEstimate,
   computeStartingRates,
   defaultForm,
   fleet,
   formatCurrency,
+  getBookingServiceById,
   getDefaultCatalog,
   getVehicleBySlug,
-  services,
+  services as marketingServices,
   testimonials,
   validateBooking,
 } from "@/lib/booking";
@@ -123,6 +125,22 @@ const faqItems = [
 ];
 
 const primarySectionIds = ["how-it-works", "services", "coverage", "rates", "fleet", "reviews", "faq", "contact"];
+
+const marketingToBookingService = {
+  airport: "airport",
+  corporate: "hourly",
+  events: "hourly",
+  hourly: "hourly",
+  longdistance: "custom",
+};
+
+function mapMarketingServiceToBookingService(serviceId) {
+  return marketingToBookingService[serviceId] ?? "custom";
+}
+
+function formatQuoteModeLabel(estimate) {
+  return estimate?.quoteMode === "request" ? "Request quote" : "Instant estimate";
+}
 
 function MobileNav({ navItems, activeNavSection, onNavClick, brandContent }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -546,7 +564,13 @@ export default function AnytimeAnywhereLimoWebsite({
   const vehicles = Array.isArray(catalog.vehicles) ? catalog.vehicles : fleet;
   const serviceEntries = Array.isArray(siteContent.services)
     ? siteContent.services
-    : services;
+    : marketingServices;
+  const bookingServiceEntries = Array.isArray(catalog.bookingServices)
+    ? catalog.bookingServices
+    : bookingServices;
+  const airportRouteEntries = Array.isArray(catalog.airportRoutes)
+    ? catalog.airportRoutes.filter((route) => route.active !== false)
+    : [];
   const testimonialEntries = Array.isArray(siteContent.testimonials)
     ? siteContent.testimonials
     : testimonials;
@@ -584,6 +608,7 @@ export default function AnytimeAnywhereLimoWebsite({
   const contactPhoneHref = `tel:${resolvedContactPhone.replace(/[^+\d]/g, "")}`;
   const contactEmailHref = `mailto:${resolvedContactEmail}`;
   const startingRates = computeStartingRates(catalog);
+  const hasAirportRoutes = airportRouteEntries.length > 0;
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const [showQuoteAssistant, setShowQuoteAssistant] = useState(false);
@@ -600,6 +625,7 @@ export default function AnytimeAnywhereLimoWebsite({
   const [form, setForm] = useState(() => ({
     ...defaultForm,
     vehicle: vehicles[0]?.slug ?? "",
+    airportRouteId: airportRouteEntries[0]?.id ?? "",
   }));
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
@@ -618,10 +644,22 @@ export default function AnytimeAnywhereLimoWebsite({
 
   const estimate = calculateEstimate(form, catalog);
   const selectedVehicle = getVehicleBySlug(form.vehicle, catalog) ?? vehicles[0] ?? null;
-  const selectedService = serviceEntries.find((service) => service.id === form.service) ?? serviceEntries[0] ?? null;
-  const passengerOptions = selectedVehicle
-    ? Array.from({ length: selectedVehicle.capacity }, (_, index) => String(index + 1))
-    : ["1"];
+  const selectedService =
+    getBookingServiceById(form.service) ??
+    bookingServiceEntries[0] ??
+    null;
+  const selectedAirportRoute =
+    airportRouteEntries.find((route) => route.id === form.airportRouteId) ??
+    airportRouteEntries[0] ??
+    null;
+  const passengerLimit = Math.max(selectedVehicle?.capacity ?? 6, 12);
+  const passengerOptions = Array.from(
+    { length: passengerLimit },
+    (_, index) => String(index + 1),
+  );
+  const quoteDisplayAmount = estimate.total > 0
+    ? formatCurrency(estimate.total)
+    : "Request Quote";
   const quoteSummary = [
     "Hello Autovise Black Car,",
     "",
@@ -632,8 +670,22 @@ export default function AnytimeAnywhereLimoWebsite({
     `Date: ${form.date || "Not provided"}`,
     `Time: ${form.time || "Not provided"}`,
     `Passengers: ${form.passengers || "Not provided"}`,
+    `Bags: ${form.bags || "0"}`,
     `Vehicle: ${selectedVehicle?.name ?? "To be confirmed"}`,
-    `Estimated total: ${formatCurrency(estimate.total || 0)}`,
+    form.service === "airport"
+      ? `Airport route: ${selectedAirportRoute?.label ?? "Not selected"}`
+      : "",
+    form.service === "hourly"
+      ? `Requested hours: ${form.requestedHours || "Not provided"}`
+      : "",
+    form.service === "custom"
+      ? `Estimated hours: ${form.estimatedTripHours || "Not provided"}`
+      : "",
+    form.service === "custom"
+      ? `Estimated miles: ${form.estimatedTripMiles || "Not provided"}`
+      : "",
+    `Quote mode: ${formatQuoteModeLabel(estimate)}`,
+    `Estimated total: ${quoteDisplayAmount}`,
     "",
     `Name: ${form.fullName || "Not provided"}`,
     `Phone: ${form.phone || "Not provided"}`,
@@ -651,9 +703,26 @@ export default function AnytimeAnywhereLimoWebsite({
       }
 
       const nextErrors = { ...currentErrors };
-      delete nextErrors[field];
+    delete nextErrors[field];
       return nextErrors;
     });
+  }
+
+  function updateServiceType(nextService) {
+    setForm((currentForm) => ({
+      ...currentForm,
+      service: nextService,
+      airportRouteId:
+        nextService === "airport"
+          ? currentForm.airportRouteId || airportRouteEntries[0]?.id || ""
+          : currentForm.airportRouteId,
+      roundTrip: nextService === "airport" ? currentForm.roundTrip : false,
+      returnDate: nextService === "airport" ? currentForm.returnDate : "",
+      returnTime: nextService === "airport" ? currentForm.returnTime : "",
+    }));
+    clearFieldError("service");
+    clearFieldError("airportRouteId");
+    setSubmitError("");
   }
 
   function updateField(field, value) {
@@ -755,7 +824,7 @@ export default function AnytimeAnywhereLimoWebsite({
   }, []);
 
   function handleServicePick(serviceId) {
-    updateField("service", serviceId);
+    updateServiceType(mapMarketingServiceToBookingService(serviceId));
     scrollToBooking();
   }
 
@@ -804,6 +873,7 @@ export default function AnytimeAnywhereLimoWebsite({
       setForm({
         ...defaultForm,
         vehicle: vehicles[0]?.slug ?? "",
+        airportRouteId: airportRouteEntries[0]?.id ?? "",
       });
     } catch {
       setSubmitError(
@@ -932,16 +1002,20 @@ export default function AnytimeAnywhereLimoWebsite({
                     Reference {submittedBooking.reference}
                   </h3>
                   <p className="mt-3 text-sm leading-7 text-white/72">
-                    We saved your request for {submittedBooking.service.toLowerCase()} in a{" "}
-                    {submittedBooking.vehicle.toLowerCase()}. Follow-up can go to{" "}
+                    We saved your request for {submittedBooking.service.toLowerCase()}. Follow-up can go to{" "}
                     {submittedBooking.email}.
                   </p>
                   <div className="mt-5 grid gap-3 text-sm text-white/68 sm:grid-cols-2">
                     <p>Pickup: {submittedBooking.pickup}</p>
                     <p>Drop-off: {submittedBooking.dropoff}</p>
                     <p>When: {submittedBooking.when}</p>
+                    {submittedBooking.returnWhen ? (
+                      <p>Return: {submittedBooking.returnWhen}</p>
+                    ) : null}
                     <p>
-                      Estimated total: {formatCurrency(submittedBooking.estimate.total)}
+                      {submittedBooking.estimate.quoteMode === "request"
+                        ? "Quote mode: Request quote"
+                        : `Estimated total: ${formatCurrency(submittedBooking.estimate.total)}`}
                     </p>
                   </div>
                 </div>
@@ -965,10 +1039,10 @@ export default function AnytimeAnywhereLimoWebsite({
                     <span className="mb-2 block text-sm text-white/72">Service</span>
                     <select id="field-service" aria-required="true" aria-invalid={!!errors.service}
                       value={form.service}
-                      onChange={(event) => updateField("service", event.target.value)}
+                      onChange={(event) => updateServiceType(event.target.value)}
                       className={fieldClassName}
                     >
-                      {serviceEntries.map((service) => (
+                      {bookingServiceEntries.map((service) => (
                         <option key={service.id} value={service.id} className="bg-[#101319]">
                           {service.title}
                         </option>
@@ -1064,7 +1138,6 @@ export default function AnytimeAnywhereLimoWebsite({
                     <select
                       value={form.passengers}
                       onChange={(event) => updateField("passengers", event.target.value)}
-                      disabled={!selectedVehicle}
                       className={fieldClassName}
                     >
                       {passengerOptions.map((count) => (
@@ -1076,6 +1149,22 @@ export default function AnytimeAnywhereLimoWebsite({
                     {errors.passengers ? (
                       <span className="mt-2 block text-sm text-amber-200">
                         {errors.passengers}
+                      </span>
+                    ) : null}
+                  </label>
+
+                  <label className="block md:col-span-1">
+                    <span className="mb-2 block text-sm text-white/72">Bags</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.bags}
+                      onChange={(event) => updateField("bags", event.target.value)}
+                      className={fieldClassName}
+                    />
+                    {errors.bags ? (
+                      <span className="mt-2 block text-sm text-amber-200">
+                        {errors.bags}
                       </span>
                     ) : null}
                   </label>
@@ -1097,38 +1186,6 @@ export default function AnytimeAnywhereLimoWebsite({
                     placeholder="Destination or event venue"
                     error={errors.dropoff}
                   />
-
-                  <div className="md:col-span-2">
-                    <button
-                      type="button"
-                      role="checkbox"
-                      aria-checked={form.roundTrip}
-                      aria-label="Add round trip — return journey included"
-                      onClick={() => updateField("roundTrip", !form.roundTrip)}
-                      className={`flex w-full items-center justify-between rounded-[1.2rem] border px-5 py-4 text-sm transition-colors ${
-                        form.roundTrip
-                          ? "border-[var(--accent)] bg-[rgba(200,168,112,0.08)] text-white"
-                          : "border-white/10 bg-white/4 text-white/60 hover:border-white/20 hover:text-white/80"
-                      }`}
-                    >
-                      <span className="flex items-center gap-3">
-                        <span className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs transition-colors ${
-                          form.roundTrip
-                            ? "border-[var(--accent)] bg-[var(--accent)] text-[#0a0a0e]"
-                            : "border-white/20 bg-transparent"
-                        }`}>
-                          {form.roundTrip ? "✓" : ""}
-                        </span>
-                        <span className="font-medium">Round Trip</span>
-                        <span className="text-white/40">— return journey included</span>
-                      </span>
-                      {form.roundTrip && (
-                        <span className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">
-                          Added
-                        </span>
-                      )}
-                    </button>
-                  </div>
 
                   <label className="block">
                     <span className="mb-2 block text-sm text-white/72">Date</span>
@@ -1160,6 +1217,250 @@ export default function AnytimeAnywhereLimoWebsite({
                     ) : null}
                   </label>
 
+                  {form.service === "hourly" ? (
+                    <>
+                      <label className="block">
+                        <span className="mb-2 block text-sm text-white/72">Requested Hours</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={form.requestedHours}
+                          onChange={(event) => updateField("requestedHours", event.target.value)}
+                          className={fieldClassName}
+                        />
+                        {errors.requestedHours ? (
+                          <span className="mt-2 block text-sm text-amber-200">
+                            {errors.requestedHours}
+                          </span>
+                        ) : (
+                          <span className="mt-2 block text-xs text-white/42">
+                            Minimum billed time is 3 hours.
+                          </span>
+                        )}
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-2 block text-sm text-white/72">Estimated Stops</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={form.estimatedStops}
+                          onChange={(event) => updateField("estimatedStops", event.target.value)}
+                          className={fieldClassName}
+                        />
+                        {errors.estimatedStops ? (
+                          <span className="mt-2 block text-sm text-amber-200">
+                            {errors.estimatedStops}
+                          </span>
+                        ) : null}
+                      </label>
+
+                      <label className="block md:col-span-2">
+                        <span className="mb-2 block text-sm text-white/72">Event Type</span>
+                        <input
+                          type="text"
+                          value={form.eventType}
+                          onChange={(event) => updateField("eventType", event.target.value)}
+                          placeholder="Meeting, wedding, concert, dinner, roadshow..."
+                          className={fieldClassName}
+                        />
+                      </label>
+                    </>
+                  ) : null}
+
+                  {form.service === "airport" ? (
+                    <>
+                      <label className="block md:col-span-2">
+                        <span className="mb-2 block text-sm text-white/72">Airport Route</span>
+                        <select
+                          value={form.airportRouteId}
+                          onChange={(event) => updateField("airportRouteId", event.target.value)}
+                          className={fieldClassName}
+                        >
+                          {hasAirportRoutes ? (
+                            airportRouteEntries.map((route) => (
+                              <option key={route.id} value={route.id} className="bg-[#101319]">
+                                {route.label}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="" className="bg-[#101319]">
+                              No flat-rate airport routes configured
+                            </option>
+                          )}
+                        </select>
+                        {errors.airportRouteId ? (
+                          <span className="mt-2 block text-sm text-amber-200">
+                            {errors.airportRouteId}
+                          </span>
+                        ) : null}
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-2 block text-sm text-white/72">Airline</span>
+                        <input
+                          type="text"
+                          value={form.airline}
+                          onChange={(event) => updateField("airline", event.target.value)}
+                          placeholder="Optional"
+                          className={fieldClassName}
+                        />
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-2 block text-sm text-white/72">Flight Number</span>
+                        <input
+                          type="text"
+                          value={form.flightNumber}
+                          onChange={(event) => updateField("flightNumber", event.target.value)}
+                          placeholder="Optional"
+                          className={fieldClassName}
+                        />
+                      </label>
+
+                      <div className="md:col-span-2">
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={form.roundTrip}
+                          aria-label="Add round trip"
+                          onClick={() => updateField("roundTrip", !form.roundTrip)}
+                          className={`flex w-full items-center justify-between rounded-[1.2rem] border px-5 py-4 text-sm transition-colors ${
+                            form.roundTrip
+                              ? "border-[var(--accent)] bg-[rgba(200,168,112,0.08)] text-white"
+                              : "border-white/10 bg-white/4 text-white/60 hover:border-white/20 hover:text-white/80"
+                          }`}
+                        >
+                          <span className="flex items-center gap-3">
+                            <span className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs transition-colors ${
+                              form.roundTrip
+                                ? "border-[var(--accent)] bg-[var(--accent)] text-[#0a0a0e]"
+                                : "border-white/20 bg-transparent"
+                            }`}>
+                              {form.roundTrip ? "✓" : ""}
+                            </span>
+                            <span className="font-medium">Round Trip</span>
+                            <span className="text-white/40">— include the return reservation now</span>
+                          </span>
+                        </button>
+                      </div>
+
+                      {form.roundTrip ? (
+                        <>
+                          <label className="block">
+                            <span className="mb-2 block text-sm text-white/72">Return Date</span>
+                            <input
+                              type="date"
+                              value={form.returnDate}
+                              onChange={(event) => updateField("returnDate", event.target.value)}
+                              className={fieldClassName}
+                            />
+                            {errors.returnDate ? (
+                              <span className="mt-2 block text-sm text-amber-200">
+                                {errors.returnDate}
+                              </span>
+                            ) : null}
+                          </label>
+
+                          <label className="block">
+                            <span className="mb-2 block text-sm text-white/72">Return Time</span>
+                            <input
+                              type="time"
+                              value={form.returnTime}
+                              onChange={(event) => updateField("returnTime", event.target.value)}
+                              className={fieldClassName}
+                            />
+                            {errors.returnTime ? (
+                              <span className="mt-2 block text-sm text-amber-200">
+                                {errors.returnTime}
+                              </span>
+                            ) : null}
+                          </label>
+                        </>
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  {form.service === "custom" ? (
+                    <>
+                      <label className="block">
+                        <span className="mb-2 block text-sm text-white/72">Estimated Trip Hours</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={form.estimatedTripHours}
+                          onChange={(event) => updateField("estimatedTripHours", event.target.value)}
+                          className={fieldClassName}
+                        />
+                        {errors.estimatedTripHours ? (
+                          <span className="mt-2 block text-sm text-amber-200">
+                            {errors.estimatedTripHours}
+                          </span>
+                        ) : null}
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-2 block text-sm text-white/72">Estimated Trip Miles</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={form.estimatedTripMiles}
+                          onChange={(event) => updateField("estimatedTripMiles", event.target.value)}
+                          className={fieldClassName}
+                        />
+                        {errors.estimatedTripMiles ? (
+                          <span className="mt-2 block text-sm text-amber-200">
+                            {errors.estimatedTripMiles}
+                          </span>
+                        ) : null}
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-2 block text-sm text-white/72">Extra Stops</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={form.extraStops}
+                          onChange={(event) => updateField("extraStops", event.target.value)}
+                          className={fieldClassName}
+                        />
+                        {errors.extraStops ? (
+                          <span className="mt-2 block text-sm text-amber-200">
+                            {errors.extraStops}
+                          </span>
+                        ) : null}
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-2 block text-sm text-white/72">Wait Time (Hours)</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={form.waitHours}
+                          onChange={(event) => updateField("waitHours", event.target.value)}
+                          className={fieldClassName}
+                        />
+                        {errors.waitHours ? (
+                          <span className="mt-2 block text-sm text-amber-200">
+                            {errors.waitHours}
+                          </span>
+                        ) : null}
+                      </label>
+
+                      <label className="inline-flex items-center gap-3 rounded-[1rem] border border-white/8 bg-white/4 px-4 py-4 text-sm text-white/74 md:col-span-2">
+                        <input
+                          type="checkbox"
+                          checked={form.holidayOrEvent}
+                          onChange={(event) => updateField("holidayOrEvent", event.target.checked)}
+                        />
+                        Apply holiday or event surcharge to this estimate
+                      </label>
+                    </>
+                  ) : null}
+
                   <div className="md:col-span-2">
                     <label className="block">
                       <span className="mb-2 block text-sm text-white/72">
@@ -1181,28 +1482,32 @@ export default function AnytimeAnywhereLimoWebsite({
                     <div>
                       <p className="lux-section-label !mb-0">Live pricing</p>
                       <h3 className="mt-3 font-display text-[1.6rem] leading-none text-white md:text-[2.4rem]">
-                        Estimated total {formatCurrency(estimate.total)}
+                        {estimate.quoteMode === "request"
+                          ? "Request quote"
+                          : `Estimated total ${quoteDisplayAmount}`}
                       </h3>
                     </div>
                     <div className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/64">
-                      Deposit {formatCurrency(estimate.deposit)}
+                      {formatQuoteModeLabel(estimate)}
                     </div>
                   </div>
 
-                  <div className="mt-5 grid gap-3 text-sm text-white/64 sm:grid-cols-2">
-                    <p>One-way rate: {formatCurrency(estimate.baseRate)}</p>
-                    {estimate.roundTripSurcharge > 0 && (
-                      <p className="text-[var(--accent-strong)]">Round trip: +{formatCurrency(estimate.roundTripSurcharge)}</p>
-                    )}
-                    <p>Estimated gratuity: {formatCurrency(estimate.gratuity)}</p>
-                    <p>After-hours fee: {formatCurrency(estimate.afterHoursFee)}</p>
-                    <p>Weekend fee: {formatCurrency(estimate.weekendFee)}</p>
-                    <p>Request adjustment: {formatCurrency(estimate.requestsFee)}</p>
-                    <p>Passenger adjustment: {formatCurrency(estimate.passengerAdjustment)}</p>
-                  </div>
+                  {estimate.lineItems?.length ? (
+                    <div className="mt-5 grid gap-3 text-sm text-white/64 sm:grid-cols-2">
+                      {estimate.lineItems.map((item) => (
+                        <p key={item.key} className={item.key === "minimum-threshold" ? "text-[var(--accent-strong)]" : ""}>
+                          {item.label}: {formatCurrency(item.amount)}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-5 text-sm leading-7 text-white/60">
+                      Submit the trip details and Autovise will review the route and return a manual quote.
+                    </p>
+                  )}
 
                   <p className="mt-4 text-sm leading-7 text-white/48">
-                    {bookingUi.pricingNote}
+                    {estimate.note || bookingUi.pricingNote}
                   </p>
 
                   <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/8 pt-4">
@@ -1227,7 +1532,7 @@ export default function AnytimeAnywhereLimoWebsite({
                       : bookingUi.unavailableButtonLabel}
                 </button>
                 <p className="mt-4 text-center text-xs text-white/36">
-                  A confirmation will be sent to your email once your booking is reviewed and accepted.
+                  Thank you. Your booking request has been received. A member of Autovise Black Car will confirm your trip shortly.
                 </p>
               </form>
             </aside>
@@ -1655,10 +1960,10 @@ export default function AnytimeAnywhereLimoWebsite({
               </span>
               <select
                 value={form.service}
-                onChange={(event) => updateField("service", event.target.value)}
+                onChange={(event) => updateServiceType(event.target.value)}
                 className={fieldClassName}
               >
-                {serviceEntries.map((service) => (
+                {bookingServiceEntries.map((service) => (
                   <option key={service.id} value={service.id} className="bg-[#101319]">
                     {service.title}
                   </option>
@@ -1733,15 +2038,99 @@ export default function AnytimeAnywhereLimoWebsite({
               </label>
             </div>
 
+            {form.service === "hourly" ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/42">
+                    Hours
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.requestedHours}
+                    onChange={(event) => updateField("requestedHours", event.target.value)}
+                    className={fieldClassName}
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/42">
+                    Stops
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.estimatedStops}
+                    onChange={(event) => updateField("estimatedStops", event.target.value)}
+                    className={fieldClassName}
+                  />
+                </label>
+              </div>
+            ) : null}
+
+            {form.service === "airport" ? (
+              <label className="block">
+                <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/42">
+                  Flat-rate route
+                </span>
+                <select
+                  value={form.airportRouteId}
+                  onChange={(event) => updateField("airportRouteId", event.target.value)}
+                  className={fieldClassName}
+                >
+                  {hasAirportRoutes ? (
+                    airportRouteEntries.map((route) => (
+                      <option key={route.id} value={route.id} className="bg-[#101319]">
+                        {route.label}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" className="bg-[#101319]">
+                      No routes configured
+                    </option>
+                  )}
+                </select>
+              </label>
+            ) : null}
+
+            {form.service === "custom" ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/42">
+                    Estimated hours
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={form.estimatedTripHours}
+                    onChange={(event) => updateField("estimatedTripHours", event.target.value)}
+                    className={fieldClassName}
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/42">
+                    Estimated miles
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.estimatedTripMiles}
+                    onChange={(event) => updateField("estimatedTripMiles", event.target.value)}
+                    className={fieldClassName}
+                  />
+                </label>
+              </div>
+            ) : null}
+
             <div className="rounded-[1.1rem] border border-[rgba(200,168,112,0.2)] bg-[linear-gradient(180deg,rgba(200,168,112,0.1),rgba(255,255,255,0.02))] px-4 py-4">
               <p className="text-xs uppercase tracking-[0.26em] text-[var(--accent)]">
                 Quote preview
               </p>
               <p className="mt-3 font-display text-[2rem] leading-none text-white">
-                {formatCurrency(estimate.total || 0)}
+                {quoteDisplayAmount}
               </p>
               <p className="mt-3 text-sm leading-7 text-white/64">
-                This is the live online estimate based on the details entered so far. Concierge can confirm the final quote and availability.
+                {estimate.note || "This is the live online estimate based on the details entered so far. Concierge can confirm the final quote and availability."}
               </p>
             </div>
 

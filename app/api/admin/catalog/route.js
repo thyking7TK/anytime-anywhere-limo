@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { NextResponse } from "next/server";
 
 import { isAuthorizedRequest } from "@/lib/admin-auth";
 import { getCatalog, saveCatalog } from "@/lib/catalog";
 import {
   defaultPricingSettings,
-  services,
+  slugifyAirportRouteLabel,
   slugifyVehicleName,
 } from "@/lib/catalog-shared";
 
@@ -15,6 +15,9 @@ export const dynamic = "force-dynamic";
 function validateCatalogPayload(payload = {}) {
   const errors = [];
   const vehicles = Array.isArray(payload.vehicles) ? payload.vehicles : [];
+  const airportRoutes = Array.isArray(payload.airportRoutes)
+    ? payload.airportRoutes
+    : [];
 
   if (vehicles.length === 0) {
     errors.push("Add at least one vehicle.");
@@ -27,7 +30,7 @@ function validateCatalogPayload(payload = {}) {
     errors.push("Keep at least one active vehicle on the live site.");
   }
 
-  const seenSlugs = new Set();
+  const seenVehicleSlugs = new Set();
 
   for (const vehicle of vehicles) {
     const name = String(vehicle.name ?? "").trim();
@@ -40,10 +43,10 @@ function validateCatalogPayload(payload = {}) {
 
     if (!slug) {
       errors.push(`Vehicle "${name || "Untitled"}" needs a valid slug.`);
-    } else if (seenSlugs.has(slug)) {
+    } else if (seenVehicleSlugs.has(slug)) {
       errors.push(`Vehicle slug "${slug}" is duplicated.`);
     } else {
-      seenSlugs.add(slug);
+      seenVehicleSlugs.add(slug);
     }
 
     if (!Number.isInteger(capacity) || capacity < 1) {
@@ -63,33 +66,76 @@ function validateCatalogPayload(payload = {}) {
         !normalizedUrl.startsWith("https://") &&
         !normalizedUrl.startsWith("http://")
       ) {
-        errors.push(
-          `Vehicle "${name || slug}" has an invalid image URL.`,
-        );
+        errors.push(`Vehicle "${name || slug}" has an invalid image URL.`);
       }
     }
   }
 
-  const pricingSettings = payload.pricingSettings ?? {};
-  const gratuityRate = Number(
-    pricingSettings.gratuityRate ?? defaultPricingSettings.gratuityRate,
-  );
+  const settings = payload.pricingSettings ?? {};
+  const numericFields = [
+    "weekdayHourlyRate",
+    "weekendHourlyRate",
+    "hourlyMinimum",
+    "customHourlyBasis",
+    "mileageRate",
+    "profitBuffer",
+    "waitRate",
+    "stopFee",
+    "lateNightStartHour",
+    "lateNightEndHour",
+    "minimumQuote",
+  ];
 
-  if (!Number.isFinite(gratuityRate) || gratuityRate < 0 || gratuityRate > 1) {
-    errors.push("Gratuity rate must be a decimal between 0 and 1.");
+  for (const field of numericFields) {
+    const value = Number(settings[field] ?? defaultPricingSettings[field]);
+
+    if (!Number.isFinite(value) || value < 0) {
+      errors.push(`${field} must be a valid non-negative number.`);
+    }
   }
 
-  const pricingMatrix = payload.pricingMatrix ?? {};
+  for (const percentField of ["lateNightPercent", "holidayPercent"]) {
+    const value = Number(
+      settings[percentField] ?? defaultPricingSettings[percentField],
+    );
 
-  for (const service of services) {
-    for (const slug of seenSlugs) {
-      const amount = Number(pricingMatrix?.[service.id]?.[slug]);
+    if (!Number.isFinite(value) || value < 0 || value > 1) {
+      errors.push(`${percentField} must be a decimal between 0 and 1.`);
+    }
+  }
 
-      if (!Number.isFinite(amount) || amount < 0) {
-        errors.push(
-          `Pricing for ${service.title} / ${slug} must be a valid non-negative number.`,
-        );
-      }
+  const seenRouteIds = new Set();
+
+  for (const route of airportRoutes) {
+    const label = String(route.label ?? "").trim();
+    const routeId = slugifyAirportRouteLabel(route.id || route.label);
+    const endpointA = String(route.endpointA ?? "").trim();
+    const endpointB = String(route.endpointB ?? "").trim();
+    const oneWayPrice = Number(route.oneWayPrice);
+    const roundTripPrice = Number(route.roundTripPrice);
+
+    if (!label) {
+      errors.push("Each airport route needs a label.");
+    }
+
+    if (!routeId) {
+      errors.push(`Airport route "${label || "Untitled"}" needs a valid id.`);
+    } else if (seenRouteIds.has(routeId)) {
+      errors.push(`Airport route id "${routeId}" is duplicated.`);
+    } else {
+      seenRouteIds.add(routeId);
+    }
+
+    if (!endpointA || !endpointB) {
+      errors.push(`Airport route "${label || routeId}" needs both endpoints.`);
+    }
+
+    if (!Number.isFinite(oneWayPrice) || oneWayPrice < 0) {
+      errors.push(`Airport route "${label || routeId}" needs a valid one-way price.`);
+    }
+
+    if (!Number.isFinite(roundTripPrice) || roundTripPrice < 0) {
+      errors.push(`Airport route "${label || routeId}" needs a valid round-trip price.`);
     }
   }
 
