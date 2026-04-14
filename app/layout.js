@@ -40,7 +40,7 @@ const jsonLd = {
     "A premium nationwide black car service specializing in executive, airport, long-distance, event, and hourly transportation, with primary operations across Maine, Massachusetts, and New York.",
   url: "https://anytime-anywhere-limo.vercel.app",
   telephone: "+12078803733",
-  email: "book@autovise.com",
+  email: "booking@autoviseblackcar.com",
   address: {
     "@type": "PostalAddress",
     addressRegion: "ME",

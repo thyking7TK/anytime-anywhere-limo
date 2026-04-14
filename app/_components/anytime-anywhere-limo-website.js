@@ -343,6 +343,61 @@ function StepCard({ item }) {
   );
 }
 
+function HeroStatCard({ item }) {
+  return (
+    <article className="glass-panel fade-in soft-lift relative min-h-[190px] overflow-hidden rounded-[1.2rem] p-5 md:min-h-[210px] md:p-6">
+      <span className="absolute right-0 top-0 h-8 w-8 border-r border-t border-[rgba(200,168,112,0.4)] rounded-tr-[1.2rem]" />
+      <span className="absolute bottom-0 left-0 h-8 w-8 border-b border-l border-[rgba(200,168,112,0.2)] rounded-bl-[1.2rem]" />
+      <p className="max-w-[12ch] font-display text-[2.2rem] leading-[0.92] text-white md:text-[3rem]">
+        {item.value}
+      </p>
+      <p className="mt-4 max-w-[18ch] text-sm leading-7 text-white/66">
+        {item.text}
+      </p>
+    </article>
+  );
+}
+
+function FaqAccordionItem({ item, isOpen, onToggle }) {
+  return (
+    <article className="glass-panel overflow-hidden rounded-[1.3rem]">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left sm:px-6"
+      >
+        <div className="flex items-start gap-4">
+          <span className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/4 text-[var(--accent)]">
+            <span className="flex flex-col gap-[3px]">
+              <span className="h-px w-3 bg-current" />
+              <span className="h-px w-3 bg-current" />
+              <span className="h-px w-3 bg-current" />
+            </span>
+          </span>
+          <span className="text-sm font-semibold leading-7 text-white sm:text-base">
+            {item.q}
+          </span>
+        </div>
+        <span
+          className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/4 text-white/64 transition-transform duration-300 ${isOpen ? "rotate-45" : ""}`}
+        >
+          +
+        </span>
+      </button>
+      <div
+        className={`grid transition-[grid-template-rows] duration-300 ease-out ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t border-white/8 px-5 pb-5 pt-4 text-sm leading-7 text-white/62 sm:px-6">
+            {item.a}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function AddressAutocompleteField({
   label,
   field,
@@ -520,11 +575,19 @@ export default function AnytimeAnywhereLimoWebsite({
   const vehicleAvailabilityMessage = hasVehicles
     ? ""
     : bookingUi.unavailableMessage;
-  const contactPhoneHref = `tel:${String(
-    contactSection.phoneValue ?? "",
-  ).replace(/[^+\d]/g, "")}`;
+  const resolvedContactPhone = String(contactSection.phoneValue ?? "").trim() || "+1 (207) 880-3733";
+  const resolvedContactEmail =
+    String(contactSection.emailValue ?? "").trim().toLowerCase() === "book@autovise.com" ||
+    !String(contactSection.emailValue ?? "").trim()
+      ? "booking@autoviseblackcar.com"
+      : String(contactSection.emailValue ?? "").trim();
+  const contactPhoneHref = `tel:${resolvedContactPhone.replace(/[^+\d]/g, "")}`;
+  const contactEmailHref = `mailto:${resolvedContactEmail}`;
   const startingRates = computeStartingRates(catalog);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState(0);
+  const [showQuoteAssistant, setShowQuoteAssistant] = useState(false);
+  const [quoteCopied, setQuoteCopied] = useState(false);
 
   useEffect(() => {
     function onScroll() {
@@ -555,9 +618,31 @@ export default function AnytimeAnywhereLimoWebsite({
 
   const estimate = calculateEstimate(form, catalog);
   const selectedVehicle = getVehicleBySlug(form.vehicle, catalog) ?? vehicles[0] ?? null;
+  const selectedService = serviceEntries.find((service) => service.id === form.service) ?? serviceEntries[0] ?? null;
   const passengerOptions = selectedVehicle
     ? Array.from({ length: selectedVehicle.capacity }, (_, index) => String(index + 1))
     : ["1"];
+  const quoteSummary = [
+    "Hello Autovise Black Car,",
+    "",
+    "I'd like a quote for this trip:",
+    `Service: ${selectedService?.title ?? "Not selected"}`,
+    `Pickup: ${form.pickup || "Not provided"}`,
+    `Drop-off: ${form.dropoff || "Not provided"}`,
+    `Date: ${form.date || "Not provided"}`,
+    `Time: ${form.time || "Not provided"}`,
+    `Passengers: ${form.passengers || "Not provided"}`,
+    `Vehicle: ${selectedVehicle?.name ?? "To be confirmed"}`,
+    `Estimated total: ${formatCurrency(estimate.total || 0)}`,
+    "",
+    `Name: ${form.fullName || "Not provided"}`,
+    `Phone: ${form.phone || "Not provided"}`,
+    `Email: ${form.email || "Not provided"}`,
+    "",
+    "Please follow up with the best quote and availability.",
+  ].join("\n");
+  const quickQuoteEmailHref = `${contactEmailHref}?subject=${encodeURIComponent("Trip Quote Request")}&body=${encodeURIComponent(quoteSummary)}`;
+  const quickQuoteSmsHref = `sms:${resolvedContactPhone.replace(/[^+\d]/g, "")}?body=${encodeURIComponent(quoteSummary)}`;
 
   function clearFieldError(field) {
     setErrors((currentErrors) => {
@@ -605,6 +690,16 @@ export default function AnytimeAnywhereLimoWebsite({
       behavior: "smooth",
       block: "start",
     });
+  }
+
+  async function copyQuoteSummary() {
+    try {
+      await navigator.clipboard.writeText(quoteSummary);
+      setQuoteCopied(true);
+      window.setTimeout(() => setQuoteCopied(false), 1800);
+    } catch {
+      setQuoteCopied(false);
+    }
   }
 
   useEffect(() => {
@@ -803,17 +898,7 @@ export default function AnytimeAnywhereLimoWebsite({
 
               <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {heroStats.map((item, index) => (
-                  <article
-                    key={`${item.value}-${index}`}
-                    className="glass-panel fade-in soft-lift rounded-[1.2rem] p-4 md:p-6"
-                  >
-                    <p className="font-display text-3xl leading-none text-white md:text-5xl">
-                      {item.value}
-                    </p>
-                    <p className="mt-2 text-xs leading-5 text-white/66 md:mt-3 md:text-sm md:leading-7">
-                      {item.text}
-                    </p>
-                  </article>
+                  <HeroStatCard key={`${item.value}-${index}`} item={item} />
                 ))}
               </div>
             </div>
@@ -1415,12 +1500,16 @@ export default function AnytimeAnywhereLimoWebsite({
               Common questions answered.
             </h2>
 
-            <div className="mt-10 grid gap-4 md:grid-cols-2">
-              {faqItems.map((item) => (
-                <article key={item.q} className="glass-panel rounded-[1.4rem] p-6">
-                  <h3 className="font-semibold text-white">{item.q}</h3>
-                  <p className="mt-3 text-sm leading-7 text-white/60">{item.a}</p>
-                </article>
+            <div className="mt-10 space-y-4">
+              {faqItems.map((item, index) => (
+                <FaqAccordionItem
+                  key={item.q}
+                  item={item}
+                  isOpen={openFaqIndex === index}
+                  onToggle={() =>
+                    setOpenFaqIndex((current) => (current === index ? -1 : index))
+                  }
+                />
               ))}
             </div>
           </div>
@@ -1457,7 +1546,7 @@ export default function AnytimeAnywhereLimoWebsite({
                     {contactSection.primaryButtonLabel}
                   </a>
                   <a
-                    href={`mailto:${contactSection.emailValue}`}
+                    href={contactEmailHref}
                     className="lux-button inline-flex min-h-14 items-center justify-center rounded-full border border-white/12 bg-white/3 px-8 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/6"
                   >
                     {contactSection.secondaryButtonLabel}
@@ -1472,17 +1561,17 @@ export default function AnytimeAnywhereLimoWebsite({
                     href={contactPhoneHref}
                     className="mt-4 block font-display text-[1.9rem] leading-tight text-white"
                   >
-                    {contactSection.phoneValue}
+                    {resolvedContactPhone}
                   </a>
                 </article>
 
                 <article className="glass-panel soft-lift rounded-[1.4rem] p-6">
                   <p className="lux-section-label !mb-0 text-[0.7rem]">{contactSection.emailLabel}</p>
                   <a
-                    href={`mailto:${contactSection.emailValue}`}
+                    href={contactEmailHref}
                     className="mt-4 block break-all font-display text-[1.9rem] leading-tight text-white"
                   >
-                    {contactSection.emailValue}
+                    {resolvedContactEmail}
                   </a>
                 </article>
 
@@ -1526,6 +1615,171 @@ export default function AnytimeAnywhereLimoWebsite({
         </svg>
       </button>
 
+      {showQuoteAssistant ? (
+        <button
+          type="button"
+          aria-label="Close quote assistant"
+          onClick={() => setShowQuoteAssistant(false)}
+          className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px]"
+        />
+      ) : null}
+
+      <div
+        className={`fixed bottom-24 right-4 z-50 w-[min(calc(100vw-1.5rem),24rem)] transition-all duration-300 sm:right-5 sm:w-[24rem] ${showQuoteAssistant ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-5 opacity-0"}`}
+      >
+        <div className="glass-panel overflow-hidden rounded-[1.4rem] border border-[rgba(200,168,112,0.2)] shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+          <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
+            <div>
+              <p className="lux-section-label !mb-0 text-[0.65rem]">Quick quote</p>
+              <h3 className="mt-2 font-display text-[1.7rem] leading-none text-white">
+                Trip Conversation
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowQuoteAssistant(false)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/4 text-white/64 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="max-h-[70vh] space-y-4 overflow-y-auto px-5 py-5">
+            <div className="rounded-[1.1rem] border border-white/8 bg-white/4 px-4 py-4 text-sm leading-7 text-white/70">
+              Tell us the trip details below and we’ll prepare a quote request you can send directly to concierge.
+            </div>
+
+            <label className="block">
+              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/42">
+                What kind of trip do you need?
+              </span>
+              <select
+                value={form.service}
+                onChange={(event) => updateField("service", event.target.value)}
+                className={fieldClassName}
+              >
+                {serviceEntries.map((service) => (
+                  <option key={service.id} value={service.id} className="bg-[#101319]">
+                    {service.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/42">
+                Where should we pick you up?
+              </span>
+              <input
+                type="text"
+                value={form.pickup}
+                onChange={(event) => updateField("pickup", event.target.value)}
+                placeholder="Airport, hotel, office, or address"
+                className={fieldClassName}
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/42">
+                Where are you going?
+              </span>
+              <input
+                type="text"
+                value={form.dropoff}
+                onChange={(event) => updateField("dropoff", event.target.value)}
+                placeholder="Destination or venue"
+                className={fieldClassName}
+              />
+            </label>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="block">
+                <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/42">
+                  Date
+                </span>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={(event) => updateField("date", event.target.value)}
+                  className={fieldClassName}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/42">
+                  Time
+                </span>
+                <input
+                  type="time"
+                  value={form.time}
+                  onChange={(event) => updateField("time", event.target.value)}
+                  className={fieldClassName}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/42">
+                  Passengers
+                </span>
+                <select
+                  value={form.passengers}
+                  onChange={(event) => updateField("passengers", event.target.value)}
+                  className={fieldClassName}
+                >
+                  {passengerOptions.map((option) => (
+                    <option key={`quote-passengers-${option}`} value={option} className="bg-[#101319]">
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="rounded-[1.1rem] border border-[rgba(200,168,112,0.2)] bg-[linear-gradient(180deg,rgba(200,168,112,0.1),rgba(255,255,255,0.02))] px-4 py-4">
+              <p className="text-xs uppercase tracking-[0.26em] text-[var(--accent)]">
+                Quote preview
+              </p>
+              <p className="mt-3 font-display text-[2rem] leading-none text-white">
+                {formatCurrency(estimate.total || 0)}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-white/64">
+                This is the live online estimate based on the details entered so far. Concierge can confirm the final quote and availability.
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowQuoteAssistant(false);
+                  scrollToBooking();
+                }}
+                className="lux-button inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--accent)] px-5 text-sm font-bold text-[#0a0a0e] hover:bg-[var(--accent-dark)]"
+              >
+                Use These Details In Booking Form
+              </button>
+              <a
+                href={quickQuoteEmailHref}
+                className="lux-button inline-flex min-h-12 items-center justify-center rounded-full border border-white/12 bg-white/4 px-5 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/6"
+              >
+                Email Quote Request
+              </a>
+              <a
+                href={quickQuoteSmsHref}
+                className="lux-button inline-flex min-h-12 items-center justify-center rounded-full border border-white/12 bg-white/4 px-5 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/6"
+              >
+                Text Quote Request
+              </a>
+              <button
+                type="button"
+                onClick={copyQuoteSummary}
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-transparent px-5 text-sm font-semibold text-white/72 hover:border-white/18 hover:text-white"
+              >
+                {quoteCopied ? "Quote Summary Copied" : "Copy Quote Summary"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <a
         href={contactPhoneHref}
         aria-label={`Call ${brandContent.name}: ${floatingActions.callLabel}`}
@@ -1535,14 +1789,15 @@ export default function AnytimeAnywhereLimoWebsite({
         {floatingActions.callLabel}
       </a>
 
-      <a
-        href="#booking"
-        aria-label="Go to booking form"
+      <button
+        type="button"
+        onClick={() => setShowQuoteAssistant((current) => !current)}
+        aria-label="Open quick quote conversation"
         className="floating-link floating-action"
       >
         <span className="floating-icon" aria-hidden="true">→</span>
         {floatingActions.bookLabel}
-      </a>
+      </button>
     </div>
   );
 }
