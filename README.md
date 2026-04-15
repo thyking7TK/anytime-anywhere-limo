@@ -1,6 +1,6 @@
-# Anytime, Anywhere Limo
+# Autovise Black Car
 
-Luxury limo booking site built with Next.js and Tailwind CSS.
+Luxury transportation booking site built with Next.js and Tailwind CSS.
 
 ## Run locally
 
@@ -69,6 +69,42 @@ Notes:
 - If `BOOKING_NOTIFICATION_EMAIL` is set, the app sends an admin alert for each saved booking.
 - If `BOOKING_SEND_CUSTOMER_CONFIRMATIONS=true`, the app also sends a customer confirmation email.
 - Without a verified domain, Resend test sending is limited. Use a verified domain before turning on customer confirmations.
+
+## Stripe payments
+
+Instant-quote bookings can continue directly into embedded Stripe Checkout after the booking request is saved.
+
+Required environment variables:
+
+- `STRIPE_SECRET_KEY`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `NEXT_PUBLIC_SITE_URL`
+
+Recommended setup:
+
+1. Create a Stripe account and collect your test or live API keys.
+2. Add the four variables above in Vercel project settings.
+3. In the Stripe dashboard, add a webhook endpoint pointing to:
+   `https://YOUR-DOMAIN/api/stripe/webhook`
+4. Subscribe that webhook to:
+   - `checkout.session.completed`
+   - `checkout.session.async_payment_succeeded`
+   - `checkout.session.async_payment_failed`
+5. Redeploy the project after the environment variables are saved.
+
+What the payment flow does:
+
+- The booking is saved first through `POST /api/bookings`.
+- If the booking has an instant quote and Stripe is configured, the site shows embedded Checkout immediately after submission.
+- When Stripe marks the Checkout Session as paid, the booking is updated in the database.
+- A payment-received email is then sent to the customer, and an admin payment email is sent if `BOOKING_NOTIFICATION_EMAIL` is configured.
+
+Notes:
+
+- Quote-request bookings do not open online payment until the trip has a real amount.
+- The current flow charges the instant quoted amount as the online payment amount.
+- Stripe webhooks are the source of truth for marking a payment as completed.
 
 ## Vehicle image uploads
 

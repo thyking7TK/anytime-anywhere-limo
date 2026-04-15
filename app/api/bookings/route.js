@@ -6,6 +6,7 @@ import {
   buildRideLocalTimestamp,
   calculateEstimate,
   formatRideLocalTimestamp,
+  getBookingPaymentAmountCents,
   getAirportRouteById,
   getBookingServiceById,
   getVehicleBySlug,
@@ -13,9 +14,15 @@ import {
   validateBooking,
 } from "@/lib/booking";
 import { getCatalog } from "@/lib/catalog";
-import { insertBooking, listRecentBookings, updateBookingStatus } from "@/lib/bookings";
+import {
+  formatBookingRecord,
+  insertBooking,
+  listRecentBookings,
+  updateBookingStatus,
+} from "@/lib/bookings";
 import { isDatabaseConfigured } from "@/lib/database";
 import { sendBookingEmails } from "@/lib/email";
+import { isStripeConfigured } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,79 +37,6 @@ const bookingStatuses = new Set([
 
 function createReference() {
   return `AV-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
-}
-
-function normalizeStoredStatus(status) {
-  return status === "pending" ? "new" : status;
-}
-
-function parseStoredJson(value) {
-  if (!value) {
-    return {};
-  }
-
-  if (typeof value === "string") {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return {};
-    }
-  }
-
-  return value;
-}
-
-function formatStoredBooking(record) {
-  const rideLocalValue =
-    typeof record.ride_local_at === "string"
-      ? record.ride_local_at.replace(" ", "T")
-      : undefined;
-  const returnLocalValue =
-    typeof record.return_local_at === "string"
-      ? record.return_local_at.replace(" ", "T")
-      : undefined;
-  const quoteBreakdown = parseStoredJson(record.quote_breakdown);
-
-  return {
-    id: record.id,
-    reference: record.reference,
-    fullName: record.full_name,
-    email: record.email,
-    phone: record.phone,
-    service: record.service,
-    serviceTitle: getBookingServiceById(record.service)?.title ?? record.service,
-    vehicleSlug: record.vehicle_slug,
-    vehicle: record.vehicle,
-    pickup: record.pickup_location,
-    dropoff: record.dropoff_location,
-    passengers: record.passengers,
-    bags: record.bags,
-    requests: record.special_requests,
-    estimatedTotal: Math.round(record.estimated_total_cents / 100),
-    estimatedDeposit: Math.round(record.estimated_deposit_cents / 100),
-    status: normalizeStoredStatus(record.status),
-    when:
-      formatRideLocalTimestamp(rideLocalValue) ||
-      String(record.ride_local_at ?? ""),
-    returnWhen:
-      formatRideLocalTimestamp(returnLocalValue) ||
-      (record.return_local_at ? String(record.return_local_at) : ""),
-    createdAt: record.created_at,
-    roundTrip: Boolean(record.round_trip),
-    airportRouteId: record.airport_route_id,
-    airportRouteLabel: record.airport_route_label,
-    airline: record.airline,
-    flightNumber: record.flight_number,
-    requestedHours: record.requested_hours,
-    estimatedTripHours: record.estimated_trip_hours,
-    estimatedTripMiles: record.estimated_trip_miles,
-    estimatedStops: record.estimated_stops,
-    extraStops: record.extra_stops,
-    waitHours: record.wait_hours,
-    holidayOrEvent: record.holiday_or_event,
-    eventType: record.event_type,
-    quoteBreakdown,
-  };
 }
 
 export async function POST(request) {
@@ -153,6 +87,11 @@ export async function POST(request) {
       ? getAirportRouteById(form.airportRouteId, catalog)
       : null;
   const reference = createReference();
+  const paymentAmountCents = getBookingPaymentAmountCents(estimate);
+  const paymentEnabled =
+    isStripeConfigured() &&
+    estimate.quoteMode === "instant" &&
+    paymentAmountCents > 0;
   const bookingForNotifications = {
     reference,
     estimate,
@@ -199,8 +138,9 @@ export async function POST(request) {
       bags: Number(form.bags),
       requests: form.requests,
       estimatedTotalCents: estimate.total * 100,
-      estimatedDepositCents: 0,
+      estimatedDepositCents: paymentEnabled ? paymentAmountCents : 0,
       status: "new",
+      paymentStatus: paymentEnabled ? "awaiting_payment" : "not_requested",
       airportRouteId: airportRoute?.id ?? null,
       airportRouteLabel: airportRoute?.label ?? null,
       airline: form.airline,
@@ -255,6 +195,18 @@ export async function POST(request) {
         when: formatRideLocalTimestamp(rideLocalAt),
         returnWhen: returnLocalAt ? formatRideLocalTimestamp(returnLocalAt) : "",
       },
+      payment: {
+        enabled: paymentEnabled,
+        status: paymentEnabled ? "awaiting_payment" : "not_requested",
+        amount: Math.round(paymentAmountCents / 100),
+        amountCents: paymentAmountCents,
+        bookingReference: reference,
+        message: paymentEnabled
+          ? "Complete the secure card payment below to finish this reservation request."
+          : estimate.quoteMode === "request"
+            ? "This trip needs a manual quote review before online payment is available."
+            : "Online payment is not configured yet for this booking.",
+      },
       emailStatus,
     },
     { status: 201 },
@@ -283,7 +235,7 @@ export async function GET(request) {
     const bookings = await listRecentBookings();
 
     return NextResponse.json({
-      bookings: bookings.map((booking) => formatStoredBooking(booking)),
+      bookings: bookings.map((booking) => formatBookingRecord(booking)),
     });
   } catch (error) {
     console.error("Failed to load bookings", error);
@@ -345,7 +297,7 @@ export async function PATCH(request) {
     }
 
     return NextResponse.json({
-      booking: formatStoredBooking(booking),
+      booking: formatBookingRecord(booking),
     });
   } catch (error) {
     console.error("Failed to update booking status", error);

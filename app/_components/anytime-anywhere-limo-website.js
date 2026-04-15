@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+import BookingPaymentCheckout from "@/app/_components/booking-payment-checkout";
 import {
   bookingServices,
   calculateEstimate,
@@ -255,94 +256,103 @@ function FleetCard({ vehicle, onChoose }) {
   const activeImageUrl = imageUrls[resolvedImageIndex] ?? imageUrls[0] ?? null;
 
   return (
-    <article className="glass-panel fade-in soft-lift rounded-[1.4rem] p-7">
-      <div
-        className={`soft-grid relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-gradient-to-br ${vehicle.accent} p-4`}
-      >
-        <div className="float-sheen absolute inset-x-12 top-3 h-24 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.18),transparent_68%)] blur-2xl" />
-        <div className="relative h-40 overflow-hidden rounded-[1.3rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] sm:h-52">
-          {activeImageUrl ? (
-            <>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08),rgba(5,8,13,0.86))]" />
-              <Image
-                src={activeImageUrl}
-                alt={vehicle.name}
-                fill
-                className="relative z-[1] object-contain p-3"
-                sizes="(max-width: 768px) 100vw, 400px"
-              />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,9,16,0.08),rgba(6,9,16,0.48))]" />
-            </>
-          ) : (
-            <div className="relative h-full flex flex-col items-center justify-center gap-3">
-              <svg viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-48 opacity-30">
-                <path d="M20 52 C20 52 30 30 50 26 L80 22 L120 22 L150 26 C170 30 180 52 180 52 L185 52 L185 58 L15 58 L15 52 Z" fill="rgba(200,168,112,0.4)" stroke="rgba(200,168,112,0.5)" strokeWidth="1"/>
-                <circle cx="50" cy="58" r="10" stroke="rgba(200,168,112,0.5)" strokeWidth="1.5" fill="rgba(0,0,0,0.6)"/>
-                <circle cx="150" cy="58" r="10" stroke="rgba(200,168,112,0.5)" strokeWidth="1.5" fill="rgba(0,0,0,0.6)"/>
-                <circle cx="50" cy="58" r="4" fill="rgba(200,168,112,0.4)"/>
-                <circle cx="150" cy="58" r="4" fill="rgba(200,168,112,0.4)"/>
-                <path d="M55 26 L75 22 L125 22 L145 26 L130 42 L70 42 Z" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5"/>
-              </svg>
-              <p className="text-[0.68rem] uppercase tracking-[0.28em] text-white/25">{vehicle.name}</p>
+    <article className="glass-panel fade-in soft-lift rounded-[1.4rem] overflow-hidden">
+      {/* Horizontal layout: image left, details right */}
+      <div className="flex flex-col md:flex-row md:items-stretch">
+
+        {/* Image panel */}
+        <div className={`soft-grid relative md:w-1/2 bg-gradient-to-br ${vehicle.accent}`}>
+          <div className="float-sheen absolute inset-x-12 top-3 h-24 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.18),transparent_68%)] blur-2xl pointer-events-none" />
+          <div className="relative h-56 md:h-full min-h-[260px] border-b border-white/8 md:border-b-0 md:border-r md:border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01))]">
+            {activeImageUrl ? (
+              <>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08),rgba(5,8,13,0.86))]" />
+                <Image
+                  src={activeImageUrl}
+                  alt={vehicle.name}
+                  fill
+                  className="relative z-[1] object-contain p-6"
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,9,16,0.04),rgba(6,9,16,0.44))]" />
+              </>
+            ) : (
+              <div className="relative h-full flex flex-col items-center justify-center gap-4 p-8">
+                <svg viewBox="0 0 280 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[320px] opacity-30">
+                  <path d="M28 70 C28 70 42 40 70 34 L110 28 L170 28 L210 34 C238 40 252 70 252 70 L260 70 L260 78 L20 78 L20 70 Z" fill="rgba(200,168,112,0.4)" stroke="rgba(200,168,112,0.5)" strokeWidth="1"/>
+                  <circle cx="70" cy="78" r="14" stroke="rgba(200,168,112,0.5)" strokeWidth="1.5" fill="rgba(0,0,0,0.6)"/>
+                  <circle cx="210" cy="78" r="14" stroke="rgba(200,168,112,0.5)" strokeWidth="1.5" fill="rgba(0,0,0,0.6)"/>
+                  <circle cx="70" cy="78" r="5" fill="rgba(200,168,112,0.5)"/>
+                  <circle cx="210" cy="78" r="5" fill="rgba(200,168,112,0.5)"/>
+                  <path d="M76 34 L105 28 L175 28 L204 34 L186 56 L94 56 Z" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5"/>
+                </svg>
+                <p className="text-[0.7rem] uppercase tracking-[0.32em] text-white/30">{vehicle.name}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Thumbnail strip */}
+          {imageUrls.length > 1 && (
+            <div className="flex gap-2 p-3 border-t border-white/8 md:border-t-0 md:absolute md:bottom-3 md:left-3">
+              {imageUrls.slice(0, 5).map((imageUrl, index) => (
+                <button
+                  key={imageUrl}
+                  type="button"
+                  onClick={() => setSelectedImageIndex(index)}
+                  className={`overflow-hidden rounded-[0.7rem] border ${index === resolvedImageIndex ? "border-[var(--accent)]" : "border-white/10"}`}
+                >
+                  <Image
+                    src={imageUrl}
+                    alt={`${vehicle.name} preview ${index + 1}`}
+                    width={56}
+                    height={44}
+                    className="bg-black/30 object-contain p-1"
+                  />
+                </button>
+              ))}
             </div>
           )}
         </div>
-      </div>
 
-      <div className="mt-6 flex items-start justify-between gap-5">
-        <div>
-          <p className="lux-section-label !mb-0 text-[0.72rem]">{vehicle.mood}</p>
-          <h3 className="mt-3 font-display text-[2rem] leading-none text-white">
-            {vehicle.name}
-          </h3>
+        {/* Details panel */}
+        <div className="flex flex-col justify-between gap-6 p-7 md:w-1/2 md:p-10">
+          <div>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="lux-section-label !mb-0 text-[0.7rem]">{vehicle.mood}</p>
+                <h3 className="mt-3 font-display text-[2rem] leading-none text-white md:text-[2.6rem]">
+                  {vehicle.name}
+                </h3>
+              </div>
+              <span className="shrink-0 rounded-full border border-[var(--line-strong)] bg-white/4 px-3 py-1.5 text-xs uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                from {formatCurrency(vehicle.startingRate ?? 0)}
+              </span>
+            </div>
+
+            <p className="mt-5 text-base leading-8 text-white/68">{vehicle.description}</p>
+
+            <div className="mt-6 grid grid-cols-2 gap-3 border-t border-white/8 pt-6 text-sm">
+              <div>
+                <p className="text-[0.68rem] uppercase tracking-[0.24em] text-[var(--accent)]">Capacity</p>
+                <p className="mt-1 font-semibold text-white">{vehicle.capacity} passengers</p>
+              </div>
+              <div>
+                <p className="text-[0.68rem] uppercase tracking-[0.24em] text-[var(--accent)]">Best for</p>
+                <p className="mt-1 text-white/70">{vehicle.bestFor || "airport, corporate, and event travel"}</p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onChoose(vehicle.slug)}
+            aria-label={`Select ${vehicle.name}`}
+            className="lux-button inline-flex min-h-[52px] w-full items-center justify-center rounded-full bg-[var(--accent)] px-8 text-sm font-bold text-[#0a0a0e] shadow-[0_14px_36px_rgba(200,168,112,0.18)] hover:bg-[var(--accent-dark)] md:w-auto md:self-start"
+          >
+            Reserve This Vehicle →
+          </button>
         </div>
-        <span className="rounded-full border border-[var(--line-strong)] bg-white/4 px-3 py-1.5 text-xs uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-          from {formatCurrency(vehicle.startingRate ?? 0)}
-        </span>
       </div>
-
-      <p className="mt-4 text-sm leading-7 text-white/68">{vehicle.description}</p>
-
-      {imageUrls.length > 1 ? (
-        <div className="mt-5 flex gap-2">
-          {imageUrls.slice(0, 5).map((imageUrl, index) => (
-            <button
-              key={imageUrl}
-              type="button"
-              onClick={() => setSelectedImageIndex(index)}
-              className={`overflow-hidden rounded-[0.95rem] border ${
-                index === resolvedImageIndex
-                  ? "border-[var(--accent)]"
-                  : "border-white/10"
-              }`}
-            >
-              <Image
-                src={imageUrl}
-                alt={`${vehicle.name} preview ${index + 1}`}
-                width={64}
-                height={56}
-                className="bg-black/30 object-contain p-1"
-              />
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="mt-6 border-t border-white/10 pt-5 text-sm text-white/68">
-        <p>Seats: {vehicle.capacity}</p>
-        <p className="mt-2">
-          Best for: {vehicle.bestFor || "airport, corporate, and event travel"}
-        </p>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => onChoose(vehicle.slug)}
-        aria-label={`Select ${vehicle.name}`}
-        className="lux-button mt-6 inline-flex min-h-12 items-center justify-center rounded-full border border-white/12 bg-white/4 px-5 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/7"
-      >
-        Select vehicle
-      </button>
     </article>
   );
 }
@@ -630,6 +640,8 @@ export default function AnytimeAnywhereLimoWebsite({
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [submittedBooking, setSubmittedBooking] = useState(null);
+  const [paymentState, setPaymentState] = useState(null);
+  const [checkingPaymentStatus, setCheckingPaymentStatus] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeNavSection, setActiveNavSection] = useState("");
   const navItems = [
@@ -761,6 +773,19 @@ export default function AnytimeAnywhereLimoWebsite({
     });
   }
 
+  function resetBookingExperience() {
+    setSubmittedBooking(null);
+    setPaymentState(null);
+    setErrors({});
+    setSubmitError("");
+    setForm({
+      ...defaultForm,
+      vehicle: vehicles[0]?.slug ?? "",
+      airportRouteId: airportRouteEntries[0]?.id ?? "",
+    });
+    scrollToBooking();
+  }
+
   async function copyQuoteSummary() {
     try {
       await navigator.clipboard.writeText(quoteSummary);
@@ -823,6 +848,64 @@ export default function AnytimeAnywhereLimoWebsite({
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+
+    if (!sessionId) {
+      return undefined;
+    }
+
+    let isActive = true;
+
+    async function loadReturnedPaymentStatus() {
+      setCheckingPaymentStatus(true);
+      setSubmitError("");
+
+      try {
+        const response = await fetch(
+          `/api/payments/session-status?session_id=${encodeURIComponent(sessionId)}`,
+          { cache: "no-store" },
+        );
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "We could not confirm payment status right now.",
+          );
+        }
+
+        if (!isActive) {
+          return;
+        }
+
+        setSubmittedBooking(data.booking ?? null);
+        setPaymentState(data.payment ?? null);
+
+        const cleanUrl = `${window.location.pathname}${window.location.hash || "#booking"}`;
+        window.history.replaceState({}, "", cleanUrl);
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        setSubmitError(
+          error.message || "We could not confirm payment status right now.",
+        );
+      } finally {
+        if (isActive) {
+          setCheckingPaymentStatus(false);
+        }
+      }
+    }
+
+    void loadReturnedPaymentStatus();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   function handleServicePick(serviceId) {
     updateServiceType(mapMarketingServiceToBookingService(serviceId));
     scrollToBooking();
@@ -868,6 +951,7 @@ export default function AnytimeAnywhereLimoWebsite({
       }
 
       setSubmittedBooking(data.booking);
+      setPaymentState(data.payment ?? null);
       setErrors({});
       setSubmitError("");
       setForm({
@@ -996,14 +1080,17 @@ export default function AnytimeAnywhereLimoWebsite({
               {submittedBooking ? (
                 <div className="relative z-10 mt-6 rounded-[1.2rem] border border-[var(--line-strong)] bg-[linear-gradient(180deg,rgba(200,168,112,0.12),rgba(255,255,255,0.02))] p-5">
                   <p className="text-xs uppercase tracking-[0.3em] text-[var(--accent-strong)]">
-                    {bookingUi.successLabel}
+                    {paymentState?.status === "paid"
+                      ? "Payment received"
+                      : bookingUi.successLabel}
                   </p>
                   <h3 className="mt-3 font-display text-[2rem] text-white">
                     Reference {submittedBooking.reference}
                   </h3>
                   <p className="mt-3 text-sm leading-7 text-white/72">
-                    We saved your request for {submittedBooking.service.toLowerCase()}. Follow-up can go to{" "}
-                    {submittedBooking.email}.
+                    {paymentState?.status === "paid"
+                      ? `We've received payment for your ${submittedBooking.service.toLowerCase()} request. Follow-up can go to ${submittedBooking.email}.`
+                      : `We saved your request for ${submittedBooking.service.toLowerCase()}. Follow-up can go to ${submittedBooking.email}.`}
                   </p>
                   <div className="mt-5 grid gap-3 text-sm text-white/68 sm:grid-cols-2">
                     <p>Pickup: {submittedBooking.pickup}</p>
@@ -1017,6 +1104,44 @@ export default function AnytimeAnywhereLimoWebsite({
                         ? "Quote mode: Request quote"
                         : `Estimated total: ${formatCurrency(submittedBooking.estimate.total)}`}
                     </p>
+                    {paymentState?.amount ? (
+                      <p>
+                        {paymentState.status === "paid"
+                          ? `Payment received: ${formatCurrency(paymentState.amount)}`
+                          : `Secure payment due: ${formatCurrency(paymentState.amount)}`}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {checkingPaymentStatus ? (
+                    <div className="mt-5 rounded-[1rem] border border-white/10 bg-white/4 px-4 py-3 text-sm text-white/68">
+                      Confirming payment status...
+                    </div>
+                  ) : null}
+
+                  {paymentState?.message ? (
+                    <div className="mt-5 rounded-[1rem] border border-white/10 bg-white/4 px-4 py-3 text-sm text-white/68">
+                      {paymentState.message}
+                    </div>
+                  ) : null}
+
+                  {paymentState?.enabled &&
+                  paymentState.status === "awaiting_payment" ? (
+                    <BookingPaymentCheckout
+                      key={submittedBooking.reference}
+                      bookingReference={submittedBooking.reference}
+                      amount={paymentState.amount}
+                    />
+                  ) : null}
+
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={resetBookingExperience}
+                      className="lux-button inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 bg-white/4 px-5 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/7"
+                    >
+                      Request Another Ride
+                    </button>
                   </div>
                 </div>
               ) : null}
@@ -1033,7 +1158,8 @@ export default function AnytimeAnywhereLimoWebsite({
                 </div>
               ) : null}
 
-              <form onSubmit={handleSubmit} className="relative z-10 mt-6" noValidate aria-label="Booking request form">
+              {!submittedBooking ? (
+                <form onSubmit={handleSubmit} className="relative z-10 mt-6" noValidate aria-label="Booking request form">
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="block" htmlFor="field-service">
                     <span className="mb-2 block text-sm text-white/72">Service</span>
@@ -1534,7 +1660,8 @@ export default function AnytimeAnywhereLimoWebsite({
                 <p className="mt-4 text-center text-xs text-white/36">
                   Thank you. Your booking request has been received. A member of Autovise Black Car will confirm your trip shortly.
                 </p>
-              </form>
+                </form>
+              ) : null}
             </aside>
           </div>
         </section>
@@ -1737,7 +1864,7 @@ export default function AnytimeAnywhereLimoWebsite({
               </p>
             </div>
 
-            <div className="mt-10 grid gap-5 xl:grid-cols-3">
+            <div className="mt-10 flex flex-col gap-5">
               {vehicles.map((vehicle) => (
                 <FleetCard
                   key={vehicle.slug}

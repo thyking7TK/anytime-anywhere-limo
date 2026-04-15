@@ -136,6 +136,27 @@ function formatStatus(status) {
   return value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : "New";
 }
 
+function paymentTone(status) {
+  switch (status) {
+    case "paid":
+      return "border-emerald-300/30 bg-emerald-400/10 text-emerald-100";
+    case "awaiting_payment":
+      return "border-amber-300/30 bg-amber-300/10 text-amber-100";
+    case "failed":
+      return "border-rose-300/30 bg-rose-400/10 text-rose-100";
+    default:
+      return "border-white/10 bg-white/6 text-white/62";
+  }
+}
+
+function formatPaymentStatus(status) {
+  const value = String(status ?? "").trim().replace(/_/g, " ");
+
+  return value
+    ? `${value.charAt(0).toUpperCase()}${value.slice(1)}`
+    : "Not requested";
+}
+
 function Section({ id, label, title, description, actions, children }) {
   return (
     <section id={`admin-${id}`} className={`${panelClassName} scroll-mt-28 p-6 md:p-8`}>
@@ -995,6 +1016,9 @@ export default function AdminDashboard() {
                             <span className={classNames("rounded-full border px-3 py-1 text-[0.7rem] uppercase tracking-[0.24em]", statusTone(booking.status))}>
                               {formatStatus(booking.status)}
                             </span>
+                            <span className={classNames("rounded-full border px-3 py-1 text-[0.7rem] uppercase tracking-[0.24em]", paymentTone(booking.paymentStatus))}>
+                              {formatPaymentStatus(booking.paymentStatus)}
+                            </span>
                           </div>
                           <p className="text-sm text-white/72">
                             {booking.fullName} | {booking.email} | {booking.phone}
@@ -1008,6 +1032,11 @@ export default function AdminDashboard() {
                           <p className="text-sm text-white/62">
                             {booking.when} | {formatCurrency(booking.estimatedTotal)}
                           </p>
+                          {booking.estimatedDeposit ? (
+                            <p className="text-sm text-white/52">
+                              Online payment amount: {formatCurrency(booking.estimatedDeposit)}
+                            </p>
+                          ) : null}
                           {booking.returnWhen ? (
                             <p className="text-sm text-white/52">Return: {booking.returnWhen}</p>
                           ) : null}
