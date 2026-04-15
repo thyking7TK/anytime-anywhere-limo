@@ -2295,15 +2295,6 @@ export default function AnytimeAnywhereLimoWebsite({
         {floatingActions.callLabel}
       </a>
 
-      <button
-        type="button"
-        onClick={() => setShowQuoteAssistant((current) => !current)}
-        aria-label="Open quick quote conversation"
-        className="floating-link floating-action"
-      >
-        <span className="floating-icon" aria-hidden="true">→</span>
-        {floatingActions.bookLabel}
-      </button>
     </div>
   );
 }
