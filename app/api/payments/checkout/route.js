@@ -117,7 +117,7 @@ export async function POST(request) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      ui_mode: "embedded",
+      ui_mode: "embedded_page",
       redirect_on_completion: "always",
       return_url: getReturnUrl(request),
       customer_email: booking.email,
