@@ -392,6 +392,7 @@ function AddressAutocompleteField({
   placeholder,
   value,
   onChange,
+  onCoordinates,
   error,
 }) {
   const [isFocused, setIsFocused] = useState(false);
@@ -459,6 +460,7 @@ function AddressAutocompleteField({
           value={value}
           onChange={(event) => {
             onChange(field, event.target.value);
+            onCoordinates?.(null);
             void loadSuggestions(event.target.value);
           }}
           onFocus={() => {
@@ -501,6 +503,9 @@ function AddressAutocompleteField({
                         field,
                         suggestion.selectionLabel || suggestion.displayName,
                       );
+                      if (suggestion.latitude && suggestion.longitude) {
+                        onCoordinates?.({ lat: suggestion.latitude, lon: suggestion.longitude });
+                      }
                       setSuggestions([]);
                       setIsFocused(false);
                     }}
@@ -579,6 +584,10 @@ export default function AnytimeAnywhereLimoWebsite({
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const [showQuoteAssistant, setShowQuoteAssistant] = useState(false);
   const [quoteCopied, setQuoteCopied] = useState(false);
+  const [pickupCoords, setPickupCoords] = useState(null);
+  const [dropoffCoords, setDropoffCoords] = useState(null);
+  const [distanceInfo, setDistanceInfo] = useState(null);
+  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
 
   useEffect(() => {
     function onScroll() {
@@ -587,6 +596,45 @@ export default function AnytimeAnywhereLimoWebsite({
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    if (!pickupCoords || !dropoffCoords) {
+      setDistanceInfo(null);
+      return undefined;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCalculatingDistance(true);
+      try {
+        const params = new URLSearchParams({
+          pickupLat: pickupCoords.lat,
+          pickupLon: pickupCoords.lon,
+          dropoffLat: dropoffCoords.lat,
+          dropoffLon: dropoffCoords.lon,
+        });
+        const response = await fetch(`/api/distance?${params}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        setDistanceInfo(data);
+        setForm((current) => {
+          if (current.service !== "custom") return current;
+          return {
+            ...current,
+            estimatedTripMiles: String(Math.round(data.distanceMiles)),
+            estimatedTripHours: String(
+              Math.round(data.durationHours * 2) / 2,
+            ),
+          };
+        });
+      } catch {
+        // silent — distance is a UI helper, not critical
+      } finally {
+        setIsCalculatingDistance(false);
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [pickupCoords, dropoffCoords]);
 
   const [form, setForm] = useState(() => ({
     ...defaultForm,
@@ -1256,6 +1304,7 @@ export default function AnytimeAnywhereLimoWebsite({
                     field="pickup"
                     value={form.pickup}
                     onChange={updateField}
+                    onCoordinates={setPickupCoords}
                     placeholder="Airport, hotel, office, or address"
                     error={errors.pickup}
                   />
@@ -1265,6 +1314,7 @@ export default function AnytimeAnywhereLimoWebsite({
                     field="dropoff"
                     value={form.dropoff}
                     onChange={updateField}
+                    onCoordinates={setDropoffCoords}
                     placeholder="Destination or event venue"
                     error={errors.dropoff}
                   />
@@ -1573,6 +1623,21 @@ export default function AnytimeAnywhereLimoWebsite({
                       {formatQuoteModeLabel(estimate)}
                     </div>
                   </div>
+
+                  {isCalculatingDistance ? (
+                    <p className="mt-4 text-xs text-white/38 animate-pulse">Calculating route distance...</p>
+                  ) : distanceInfo ? (
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-3 py-1.5 text-xs text-white/60">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                        {distanceInfo.distanceMiles} mi drive
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-3 py-1.5 text-xs text-white/60">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                        ~{distanceInfo.durationMinutes} min
+                      </span>
+                    </div>
+                  ) : null}
 
                   {estimate.lineItems?.length ? (
                     <div className="mt-5 grid gap-3 text-sm text-white/64 sm:grid-cols-2">
