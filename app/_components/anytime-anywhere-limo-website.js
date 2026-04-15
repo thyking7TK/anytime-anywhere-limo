@@ -1697,9 +1697,6 @@ export default function AnytimeAnywhereLimoWebsite({
                       ? bookingUi.submitButtonLabel
                       : bookingUi.unavailableButtonLabel}
                 </button>
-                <p className="mt-4 text-center text-xs text-white/36">
-                  Thank you. Your booking request has been received. A member of Autovise Black Car will confirm your trip shortly.
-                </p>
                 </form>
               ) : null}
             </aside>
