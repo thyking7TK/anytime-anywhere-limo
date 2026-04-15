@@ -169,8 +169,11 @@ export async function POST(request) {
   } catch (error) {
     console.error("Failed to create Stripe checkout session", error);
 
+    const stripeMessage =
+      error?.message || "We could not start secure payment right now.";
+
     return NextResponse.json(
-      { message: "We could not start secure payment right now." },
+      { message: stripeMessage },
       { status: 500 },
     );
   }
