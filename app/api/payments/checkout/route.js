@@ -17,11 +17,16 @@ function toDisplayAmount(cents) {
   return Math.round(Number(cents || 0) / 100);
 }
 
-function getReturnUrl(request) {
+function getSuccessUrl(request) {
   const origin = new URL(request.url).origin;
   const siteUrl = resolveSiteUrl(origin);
-
   return `${siteUrl}/?session_id={CHECKOUT_SESSION_ID}#booking`;
+}
+
+function getCancelUrl(request) {
+  const origin = new URL(request.url).origin;
+  const siteUrl = resolveSiteUrl(origin);
+  return `${siteUrl}/#booking`;
 }
 
 export async function POST(request) {
@@ -99,12 +104,12 @@ export async function POST(request) {
       }
 
       if (
-        existingSession?.client_secret &&
+        existingSession?.url &&
         existingSession?.status === "open" &&
         existingSession?.payment_status === "unpaid"
       ) {
         return NextResponse.json({
-          clientSecret: existingSession.client_secret,
+          url: existingSession.url,
           sessionId: existingSession.id,
           amount: toDisplayAmount(booking.estimated_deposit_cents),
         });
@@ -117,9 +122,8 @@ export async function POST(request) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      ui_mode: "embedded_page",
-      redirect_on_completion: "always",
-      return_url: getReturnUrl(request),
+      success_url: getSuccessUrl(request),
+      cancel_url: getCancelUrl(request),
       customer_email: booking.email,
       client_reference_id: booking.reference,
       submit_type: "book",
@@ -162,7 +166,7 @@ export async function POST(request) {
     });
 
     return NextResponse.json({
-      clientSecret: session.client_secret,
+      url: session.url,
       sessionId: session.id,
       amount: toDisplayAmount(booking.estimated_deposit_cents),
     });
