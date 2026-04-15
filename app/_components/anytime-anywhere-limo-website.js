@@ -668,7 +668,6 @@ export default function AnytimeAnywhereLimoWebsite({
     ["services", navigationContent.services],
     ["coverage", "Coverage"],
     ["rates", "Rates"],
-    ["fleet", navigationContent.fleet],
     ["reviews", navigationContent.reviews],
     ["faq", "FAQ"],
     ["contact", navigationContent.contact],
@@ -1017,7 +1016,7 @@ export default function AnytimeAnywhereLimoWebsite({
 
           <a
             href="#booking"
-            className="lux-button hidden min-h-14 items-center justify-center rounded-full border border-white/12 bg-white/3 px-7 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/6 md:inline-flex"
+            className="lux-button hidden min-h-14 items-center justify-center rounded-full bg-[var(--accent)] px-7 text-sm font-bold text-[#0a0a0e] shadow-[0_8px_24px_rgba(200,168,112,0.28)] hover:bg-[var(--accent-dark)] md:inline-flex"
           >
             {navigationContent.reserve}
           </a>
