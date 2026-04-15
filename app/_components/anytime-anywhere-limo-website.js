@@ -469,8 +469,22 @@ function AddressAutocompleteField({
             void loadSuggestions(value);
           }}
           onBlur={() => {
-            blurTimeoutRef.current = setTimeout(() => {
+            blurTimeoutRef.current = setTimeout(async () => {
               setIsFocused(false);
+              if (value.trim().length >= 3) {
+                try {
+                  const res = await fetch(
+                    `/api/address-search?q=${encodeURIComponent(value.trim())}`,
+                  );
+                  const data = await res.json();
+                  const first = data.suggestions?.[0];
+                  if (first?.latitude && first?.longitude) {
+                    onCoordinates?.({ lat: first.latitude, lon: first.longitude });
+                  }
+                } catch {
+                  // silent
+                }
+              }
             }, 140);
           }}
           placeholder={placeholder}
@@ -618,12 +632,14 @@ export default function AnytimeAnywhereLimoWebsite({
         setDistanceInfo(data);
         setForm((current) => {
           if (current.service !== "custom") return current;
+          const autoMiles = String(Math.round(data.distanceMiles));
+          const autoHours = String(Math.round(data.durationHours * 2) / 2);
+          const milesUnchanged = !current.estimatedTripMiles || current.estimatedTripMiles === "0";
+          const hoursUnchanged = !current.estimatedTripHours || current.estimatedTripHours === "0";
           return {
             ...current,
-            estimatedTripMiles: String(Math.round(data.distanceMiles)),
-            estimatedTripHours: String(
-              Math.round(data.durationHours * 2) / 2,
-            ),
+            estimatedTripMiles: milesUnchanged ? autoMiles : current.estimatedTripMiles,
+            estimatedTripHours: hoursUnchanged ? autoHours : current.estimatedTripHours,
           };
         });
       } catch {
@@ -1319,6 +1335,24 @@ export default function AnytimeAnywhereLimoWebsite({
                     error={errors.dropoff}
                   />
 
+                  {(isCalculatingDistance || distanceInfo) && (
+                    <div className="md:col-span-2 flex items-center gap-3 rounded-[1.1rem] border border-white/8 bg-white/3 px-4 py-3">
+                      {isCalculatingDistance ? (
+                        <p className="text-xs text-white/40 animate-pulse">Calculating route...</p>
+                      ) : distanceInfo ? (
+                        <>
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
+                          <p className="text-sm text-white/70">
+                            <span className="font-semibold text-white">{distanceInfo.distanceMiles} miles</span>
+                            <span className="mx-2 text-white/24">/</span>
+                            <span className="font-semibold text-white">~{distanceInfo.durationMinutes} min</span>
+                            <span className="ml-2 text-white/40">estimated drive</span>
+                          </p>
+                        </>
+                      ) : null}
+                    </div>
+                  )}
+
                   <label className="block">
                     <span className="mb-2 block text-sm text-white/72">Date</span>
                     <input
@@ -1623,21 +1657,6 @@ export default function AnytimeAnywhereLimoWebsite({
                       {formatQuoteModeLabel(estimate)}
                     </div>
                   </div>
-
-                  {isCalculatingDistance ? (
-                    <p className="mt-4 text-xs text-white/38 animate-pulse">Calculating route distance...</p>
-                  ) : distanceInfo ? (
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-3 py-1.5 text-xs text-white/60">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-                        {distanceInfo.distanceMiles} mi drive
-                      </span>
-                      <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-3 py-1.5 text-xs text-white/60">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-                        ~{distanceInfo.durationMinutes} min
-                      </span>
-                    </div>
-                  ) : null}
 
                   {estimate.lineItems?.length ? (
                     <div className="mt-5 grid gap-3 text-sm text-white/64 sm:grid-cols-2">
