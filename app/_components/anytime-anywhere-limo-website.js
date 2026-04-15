@@ -24,29 +24,6 @@ const fieldClassName =
   "frost-input w-full rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-4 text-sm text-white outline-none placeholder:text-white/32 focus:border-[var(--accent)] focus:bg-white/7";
 const addressSuggestionCache = new Map();
 
-const howItWorksSteps = [
-  {
-    step: "Step 01",
-    title: "Enter trip details",
-    text: "Add pickup, destination, timing, service type, and any special notes that help us shape the ride correctly.",
-  },
-  {
-    step: "Step 02",
-    title: "See a live estimate",
-    text: "Pricing updates instantly as the service, vehicle, schedule, and passenger count change.",
-  },
-  {
-    step: "Step 03",
-    title: "Send the request",
-    text: "Your booking is saved through the live backend and can be reviewed from the admin dashboard.",
-  },
-  {
-    step: "Step 04",
-    title: "Ride with confidence",
-    text: "The request is ready for follow-up, confirmation, and chauffeur coordination without starting from scratch.",
-  },
-];
-
 const proofChips = [
   "Flight tracking",
   "Transparent pricing",
@@ -71,24 +48,6 @@ const coverageAreas = [
   },
 ];
 
-const whyAutovisePoints = [
-  {
-    title: "Nationwide Reach",
-    text: "Autovise is based on the East Coast and can coordinate transportation services nationwide for clients who need consistency beyond one region.",
-  },
-  {
-    title: "Professional Precision",
-    text: "Clients book Autovise for discretion, punctuality, and the calm confidence that comes with professional chauffeur service.",
-  },
-  {
-    title: "Airport to Long-Distance",
-    text: "From airport transfers and executive runs to state-line travel and VIP itineraries, the service is built for real transportation needs.",
-  },
-  {
-    title: "Available 24/7",
-    text: "Early departures, late-night arrivals, and time-sensitive bookings are handled with the same level of care every day of the week.",
-  },
-];
 
 const faqItems = [
   {
@@ -125,7 +84,8 @@ const faqItems = [
   },
 ];
 
-const primarySectionIds = ["how-it-works", "services", "coverage", "rates", "fleet", "reviews", "faq", "contact"];
+const primarySectionIds = ["services", "coverage", "rates", "fleet", "reviews", "faq", "contact"];
+
 
 const marketingToBookingService = {
   airport: "airport",
@@ -587,10 +547,6 @@ export default function AnytimeAnywhereLimoWebsite({
   const heroStats = Array.isArray(siteContent.heroStats)
     ? siteContent.heroStats
     : [];
-  const howItWorksContent = siteContent.howItWorks ?? {};
-  const howItWorksEntries = Array.isArray(howItWorksContent.steps)
-    ? howItWorksContent.steps
-    : howItWorksSteps;
   const proofContent = siteContent.proof ?? {};
   const heroContent = siteContent.hero ?? {};
   const brandContent = siteContent.brand ?? {};
@@ -645,12 +601,12 @@ export default function AnytimeAnywhereLimoWebsite({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeNavSection, setActiveNavSection] = useState("");
   const navItems = [
-    ["how-it-works", navigationContent.howItWorks],
     ["services", navigationContent.services],
     ["coverage", "Coverage"],
     ["rates", "Rates"],
     ["fleet", navigationContent.fleet],
     ["reviews", navigationContent.reviews],
+    ["faq", "FAQ"],
     ["contact", navigationContent.contact],
   ];
 
@@ -1788,46 +1744,6 @@ export default function AnytimeAnywhereLimoWebsite({
           </div>
         </section>
 
-        <section className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
-          <div className="limo-container">
-            <p className="lux-section-label">Why Autovise</p>
-            <h2 className="max-w-[760px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
-              Luxury transportation built on reliability and discretion.
-            </h2>
-            <p className="mt-5 max-w-[760px] text-lg leading-8 text-white/66">
-              While Autovise Black Car is based on the East Coast, the service is built to coordinate transportation nationwide for clients who need professionalism, reliability, and precision wherever they travel.
-            </p>
-
-            <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              {whyAutovisePoints.map((item) => (
-                <article key={item.title} className="glass-panel fade-in soft-lift rounded-[1.4rem] p-7">
-                  <p className="text-[var(--accent)] text-lg mb-5">✦</p>
-                  <h3 className="font-display text-[1.5rem] leading-tight text-white">{item.title}</h3>
-                  <p className="mt-3 text-sm leading-7 text-white/60">{item.text}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section id="how-it-works" className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
-          <div className="limo-container">
-            <p className="lux-section-label">{howItWorksContent.label}</p>
-            <h2 className="max-w-[780px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
-              {howItWorksContent.title}
-            </h2>
-            <p className="mt-5 max-w-[720px] text-lg leading-8 text-white/66">
-              {howItWorksContent.description}
-            </p>
-
-            <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              {howItWorksEntries.map((item, index) => (
-                <StepCard key={`${item.step}-${index}`} item={item} />
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section id="services" className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
           <div className="limo-container">
             <p className="lux-section-label">{servicesSection.label}</p>
@@ -1959,14 +1875,7 @@ export default function AnytimeAnywhereLimoWebsite({
                   {contactSection.description}
                 </p>
 
-                <div className="mt-6 inline-flex flex-wrap items-center gap-2 rounded-[1rem] border border-[var(--line-strong)] bg-white/3 px-4 py-3 text-sm text-white/60">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-                  <span>Primary operations - <strong className="text-white/80">Maine · Massachusetts · New York</strong></span>
-                  <span className="hidden sm:inline text-white/24">/</span>
-                  <span className="text-[var(--accent)]">Nationwide service available by request</span>
-                </div>
-
-                <p className="mt-4 text-sm text-white/40">
+                <p className="mt-6 text-sm text-white/40">
                   Free cancellation up to 24 hours before pickup. Wait time billed at $40/hr. Extra stops $25–$50.
                 </p>
 
