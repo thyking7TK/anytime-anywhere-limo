@@ -29,7 +29,7 @@ export const metadata = {
     description:
       "Nationwide luxury transportation with strong East Coast operations across Maine, Massachusetts, and New York.",
   },
-  metadataBase: new URL("https://anytime-anywhere-limo.vercel.app"),
+  metadataBase: new URL("https://autoblackcar.com"),
 };
 
 const jsonLd = {
@@ -38,7 +38,7 @@ const jsonLd = {
   name: "Autovise Black Car",
   description:
     "A premium nationwide black car service specializing in executive, airport, long-distance, event, and hourly transportation, with primary operations across Maine, Massachusetts, and New York.",
-  url: "https://anytime-anywhere-limo.vercel.app",
+  url: "https://autoblackcar.com",
   telephone: "+12078803733",
   email: "booking@autoviseblackcar.com",
   address: {
