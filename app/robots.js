@@ -7,6 +7,6 @@ export default function robots() {
         disallow: ["/admin", "/api/"],
       },
     ],
-    sitemap: "https://autoblackcar.com/sitemap.xml",
+    sitemap: "https://autoviseblackcar.com/sitemap.xml",
   };
 }
