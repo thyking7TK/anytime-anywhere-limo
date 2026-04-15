@@ -1,0 +1,23 @@
+export default function SiteFooter({ siteContent }) {
+  const brandContent = siteContent?.brand ?? {};
+  const footerContent = siteContent?.footer ?? {};
+
+  return (
+    <footer className="border-t border-[rgba(200,168,112,0.12)] px-5 pb-16 pt-10">
+      <div className="limo-container">
+        <div className="mb-8 flex flex-col gap-2">
+          <p className="font-display text-[1.6rem] leading-none tracking-[-0.02em] text-white/90">
+            {brandContent.name}
+          </p>
+          <p className="text-[0.68rem] uppercase tracking-[0.32em] text-[var(--accent)]">
+            {brandContent.subtitle}
+          </p>
+        </div>
+        <div className="border-t border-white/6 pt-7 flex flex-col gap-3 text-sm text-white/40 md:flex-row md:items-center md:justify-between">
+          <p>{footerContent.legal}</p>
+          <p>{footerContent.description}</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
