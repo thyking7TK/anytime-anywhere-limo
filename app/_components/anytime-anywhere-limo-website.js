@@ -1702,24 +1702,6 @@ export default function AnytimeAnywhereLimoWebsite({
           </div>
         </section>
 
-        <section className="relative z-10 px-5 pb-5 pt-1">
-          <div className="limo-container">
-            <div className="proof-panel rounded-[1.2rem] px-6 py-5 md:px-7">
-              <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-                <p className="text-base leading-8 text-white/84">
-                  {proofContent.text}
-                </p>
-                <div className="flex flex-wrap gap-3 lg:justify-end">
-                  {visibleProofChips.map((chip) => (
-                    <div key={chip} className="proof-chip">
-                      {chip}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
         </div>
 
         <section id="coverage" className="px-4 py-12 md:py-16 lg:py-20 sm:px-5 border-t border-white/6">
