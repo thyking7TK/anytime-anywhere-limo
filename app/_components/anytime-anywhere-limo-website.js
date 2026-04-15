@@ -2011,10 +2011,11 @@ export default function AnytimeAnywhereLimoWebsite({
         type="button"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         aria-label="Back to top"
-        className={`fixed bottom-[26px] left-5 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-[rgba(200,168,112,0.25)] bg-[rgba(8,10,14,0.92)] text-white/60 backdrop-blur-md transition-all duration-300 hover:border-[var(--accent)] hover:text-[var(--accent)] sm:bottom-[28px] sm:left-6 ${showScrollTop ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-3 pointer-events-none"}`}
+        style={{ animation: showScrollTop ? "float-button 3s ease-in-out infinite" : "none" }}
+        className={`fixed bottom-[26px] left-5 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[#0a0a0e] shadow-[0_8px_32px_rgba(200,168,112,0.28),0_2px_8px_rgba(0,0,0,0.3)] transition-all duration-300 hover:bg-[var(--accent-dark)] sm:bottom-[28px] sm:left-6 ${showScrollTop ? "opacity-100 pointer-events-auto" : "opacity-0 translate-y-3 pointer-events-none"}`}
       >
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M8 12V4M8 4L4 8M8 4L12 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M8 12V4M8 4L4 8M8 4L12 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </button>
 
