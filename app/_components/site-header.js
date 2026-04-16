@@ -217,7 +217,7 @@ function BrandLogo({ brandContent }) {
 
   return (
     <Image
-      src="/logo.png"
+      src="/logo.jpg"
       alt="Autovise Black Car — Nationwide Luxury Transportation"
       width={780}
       height={312}
