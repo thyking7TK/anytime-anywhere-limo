@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -198,49 +199,24 @@ function MobileNav({ navItems, activePathname, brandContent }) {
   );
 }
 
-/**
- * BrandLogo — shows the "A" mark cropped from logo.jpg beside the brand name text.
- *
- * The logo.jpg is 861×530. The A mark occupies roughly the top 42% of
- * height and is horizontally centered. We render the image at 170px wide
- * (scale ≈ 0.197) inside a 42×42 overflow:hidden container, offset so only
- * the A mark is visible. mix-blend-mode:lighten makes the black background
- * invisible on the dark header.
- */
 function BrandLogo() {
   return (
     <div className="flex items-center gap-2 md:gap-3">
-      {/* Clipping container — shows only the A mark portion */}
-      <div
+      {/* A mark — logo.png is 356×257, pure icon with transparent background */}
+      <Image
+        src="/logo.png"
+        alt=""
         aria-hidden="true"
-        style={{
-          width: "42px",
-          height: "42px",
-          overflow: "hidden",
-          position: "relative",
-          flexShrink: 0,
-        }}
-      >
-        <img
-          src="/logo.jpg"
-          alt=""
-          style={{
-            width: "170px",
-            height: "auto",
-            position: "absolute",
-            top: "-2px",
-            left: "-64px",
-            mixBlendMode: "lighten",
-          }}
-        />
-      </div>
+        width={356}
+        height={257}
+        priority
+        className="h-9 w-auto md:h-11"
+      />
 
-      {/* Brand name text */}
-      <div>
-        <p className="font-display text-[1.15rem] leading-none tracking-[-0.02em] text-white md:text-[1.55rem]">
-          Autovise Black Car
-        </p>
-      </div>
+      {/* Brand name */}
+      <p className="font-display text-[1.15rem] leading-none tracking-[-0.02em] text-white md:text-[1.55rem]">
+        Autovise Black Car
+      </p>
     </div>
   );
 }
