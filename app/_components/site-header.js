@@ -33,14 +33,14 @@ function MobileNav({ navItems, activePathname, brandContent }) {
 
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 lg:hidden"
+          className="fixed inset-0 z-40 lg:hidden bg-black/60 backdrop-blur-[2px]"
           onClick={close}
           aria-hidden="true"
         />
       )}
 
       <div
-        className={`fixed inset-y-0 right-0 z-50 w-72 flex flex-col lg:hidden border-l border-white/8 bg-[rgba(6,7,12,0.97)] backdrop-blur-2xl transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        className={`fixed inset-y-0 right-0 z-50 w-72 flex flex-col lg:hidden border-l border-white/10 bg-[#07080d] backdrop-blur-xl transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
       >
         <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
           <div>
