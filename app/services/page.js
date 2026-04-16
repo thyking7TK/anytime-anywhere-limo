@@ -2,6 +2,7 @@ import Link from "next/link";
 import SiteHeader from "@/app/_components/site-header";
 import SiteFooter from "@/app/_components/site-footer";
 import SiteFloatingActions from "@/app/_components/site-floating-actions";
+import ScrollReveal from "@/app/_components/scroll-reveal";
 import { getCatalog } from "@/lib/catalog";
 import { getSiteContent } from "@/lib/site-content";
 import { services as defaultServices } from "@/lib/booking";
@@ -88,6 +89,7 @@ export default async function ServicesPage() {
         contactPhone={siteContent.contactSection?.phoneValue || "+1 (207) 880-3733"}
         callLabel={siteContent.floatingActions?.callLabel || "Call Concierge"}
       />
+      <ScrollReveal />
     </div>
   );
 }
