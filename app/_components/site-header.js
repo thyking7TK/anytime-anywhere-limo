@@ -13,41 +13,67 @@ function MobileNav({ navItems, activePathname, brandContent }) {
 
   return (
     <>
+      {/* Hamburger button */}
       <button
         type="button"
         aria-label={isOpen ? "Close menu" : "Open menu"}
         aria-expanded={isOpen}
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex lg:hidden flex-col justify-center items-center gap-[5px] w-11 h-11 rounded-full border border-white/10 bg-white/4 backdrop-blur-sm"
+        className="flex lg:hidden flex-col justify-center items-center gap-[5px] w-11 h-11 rounded-full border border-white/10 bg-white/4"
       >
-        <span
-          className={`block h-px w-5 bg-white/80 transition-transform duration-300 ${isOpen ? "translate-y-[6px] rotate-45" : ""}`}
-        />
-        <span
-          className={`block h-px w-5 bg-white/80 transition-opacity duration-300 ${isOpen ? "opacity-0" : ""}`}
-        />
-        <span
-          className={`block h-px w-5 bg-white/80 transition-transform duration-300 ${isOpen ? "-translate-y-[6px] -rotate-45" : ""}`}
-        />
+        <span className={`block h-px w-5 bg-white/80 transition-transform duration-300 ${isOpen ? "translate-y-[6px] rotate-45" : ""}`} />
+        <span className={`block h-px w-5 bg-white/80 transition-opacity duration-300 ${isOpen ? "opacity-0" : ""}`} />
+        <span className={`block h-px w-5 bg-white/80 transition-transform duration-300 ${isOpen ? "-translate-y-[6px] -rotate-45" : ""}`} />
       </button>
 
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 lg:hidden bg-black/60 backdrop-blur-[2px]"
-          onClick={close}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Slide-animation wrapper — no background here, just handles the transform */}
+      {/*
+        Full-screen fixed container — holds both scrim and panel.
+        Using a single fixed parent avoids the iOS compositing bug where
+        a fixed child's background-color gets dropped when backdrop-filter
+        is active anywhere on the page.
+      */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 w-72 lg:hidden transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        className="lg:hidden"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 9999,
+          pointerEvents: isOpen ? "auto" : "none",
+        }}
+        aria-hidden={!isOpen}
       >
-        {/* Inner panel — solid background defined in globals.css .mobile-nav-drawer
-            so no Tailwind purge, arbitrary-value failure, or backdrop-filter
-            compositing on iOS can ever make this transparent */}
-        <div className="mobile-nav-drawer flex h-full flex-col">
-          <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
+        {/* Scrim — darkens the page behind the panel */}
+        <div
+          onClick={close}
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.72)",
+            opacity: isOpen ? 1 : 0,
+            transition: "opacity 300ms ease",
+          }}
+        />
+
+        {/* Drawer panel — absolutely positioned inside the fixed container.
+            All visual styles are inline so no Tailwind class can be purged,
+            overridden, or composited away. */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: "288px",
+            backgroundColor: "#07080d",
+            borderLeft: "1px solid rgba(255,255,255,0.1)",
+            display: "flex",
+            flexDirection: "column",
+            transform: isOpen ? "translateX(0)" : "translateX(100%)",
+            transition: "transform 300ms ease-out",
+          }}
+        >
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "20px 24px" }}>
             <div>
               <p className="font-display text-[1.3rem] leading-none text-white">
                 {brandContent.name}
@@ -60,13 +86,15 @@ function MobileNav({ navItems, activePathname, brandContent }) {
               type="button"
               aria-label="Close menu"
               onClick={close}
-              className="flex items-center justify-center w-9 h-9 rounded-full border border-white/10 bg-white/4 text-white/60 hover:text-white"
+              className="flex items-center justify-center w-9 h-9 rounded-full border border-white/10 text-white/60 hover:text-white"
+              style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
             >
               ✕
             </button>
           </div>
 
-          <nav className="flex flex-col gap-1 p-5">
+          {/* Nav links */}
+          <nav style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "20px" }}>
             {navItems.map(([href, label]) => {
               const isActive = activePathname === href;
               return (
@@ -74,21 +102,50 @@ function MobileNav({ navItems, activePathname, brandContent }) {
                   key={href}
                   href={href}
                   onClick={close}
-                  className={`flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors ${isActive ? "bg-white/6 text-white border border-white/10" : "text-white/70 hover:bg-white/4 hover:text-white"}`}
                   aria-current={isActive ? "page" : undefined}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    borderRadius: "12px",
+                    padding: "14px 16px",
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                    color: isActive ? "#ffffff" : "rgba(255,255,255,0.7)",
+                    backgroundColor: isActive ? "rgba(255,255,255,0.06)" : "transparent",
+                    border: isActive ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
+                    textDecoration: "none",
+                  }}
                 >
-                  <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-[var(--accent)]" : "bg-white/20"}`} />
+                  <span style={{
+                    width: "6px", height: "6px", borderRadius: "9999px", flexShrink: 0,
+                    backgroundColor: isActive ? "var(--accent)" : "rgba(255,255,255,0.2)",
+                  }} />
                   {label}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="mt-auto border-t border-white/8 p-5">
+          {/* Reserve Now CTA */}
+          <div style={{ marginTop: "auto", borderTop: "1px solid rgba(255,255,255,0.08)", padding: "20px" }}>
             <Link
               href="/#booking"
               onClick={close}
-              className="lux-button flex min-h-12 items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e]"
+              className="lux-button"
+              style={{
+                display: "flex",
+                minHeight: "48px",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "9999px",
+                backgroundColor: "var(--accent)",
+                padding: "0 24px",
+                fontSize: "0.875rem",
+                fontWeight: 700,
+                color: "#0a0a0e",
+                textDecoration: "none",
+              }}
             >
               Reserve Now
             </Link>
