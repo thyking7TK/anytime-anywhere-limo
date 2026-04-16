@@ -5,8 +5,8 @@ import { getCatalog } from "@/lib/catalog";
 import { getSiteContent } from "@/lib/site-content";
 import FaqAccordion from "./faq-accordion";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+
+export const revalidate = 300;
 
 export const metadata = {
   title: "FAQ",

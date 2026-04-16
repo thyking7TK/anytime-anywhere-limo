@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import BookingPaymentCheckout from "@/app/_components/booking-payment-checkout";
@@ -31,21 +30,6 @@ const proofChips = [
 
 function formatQuoteModeLabel(estimate) {
   return estimate?.quoteMode === "request" ? "Request quote" : "Instant estimate";
-}
-
-function HeroStatCard({ item }) {
-  return (
-    <article className="glass-panel fade-in soft-lift relative flex min-h-[210px] flex-col overflow-hidden rounded-[1.2rem] p-5 md:min-h-[230px] md:p-6 lg:min-h-[250px]">
-      <span className="absolute right-0 top-0 h-8 w-8 border-r border-t border-[rgba(200,168,112,0.4)] rounded-tr-[1.2rem]" />
-      <span className="absolute bottom-0 left-0 h-8 w-8 border-b border-l border-[rgba(200,168,112,0.2)] rounded-bl-[1.2rem]" />
-      <p className="max-w-full font-display text-[2.35rem] leading-[0.92] text-white sm:text-[2.8rem] md:text-[3.4rem]">
-        {item.value}
-      </p>
-      <p className="mt-4 max-w-[30ch] text-sm leading-7 text-white/66 md:text-[1rem]">
-        {item.text}
-      </p>
-    </article>
-  );
 }
 
 function AddressAutocompleteField({
@@ -520,57 +504,11 @@ export default function AnytimeAnywhereLimoWebsite({
   }
 
   return (
-    <main id="top">
-      <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,#05060a_0%,#080a0e_40%,#06080f_100%)]" />
-          <div className="absolute inset-0 opacity-[0.028]" style={{backgroundImage:"repeating-linear-gradient(0deg,transparent,transparent 79px,rgba(255,255,255,0.5) 80px),repeating-linear-gradient(90deg,transparent,transparent 79px,rgba(255,255,255,0.5) 80px)"}} />
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[rgba(200,168,112,0.3)] to-transparent" />
-          <div className="absolute -top-40 right-0 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(200,168,112,0.06),transparent_65%)]" />
-          <div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,rgba(200,168,112,0.04),transparent_65%)]" />
-        </div>
-
-        <section className="relative z-10 px-4 pb-8 pt-6 sm:px-5 md:pb-12 md:pt-10">
-          <div className="limo-container grid gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-stretch">
-            <div className="fade-in py-4 md:py-10">
-              <div className="lux-eyebrow">{heroContent.eyebrow}</div>
-              <p className="mt-6 text-[0.92rem] uppercase tracking-[0.28em] text-[var(--accent)]">
-                {heroContent.kicker}
-              </p>
-              <h1 className="mt-7 max-w-[820px] font-display text-[2rem] leading-[1] tracking-[-0.03em] text-white sm:text-[2.8rem] md:text-[3.8rem] lg:text-[4.6rem] xl:text-[5.4rem]">
-                {heroContent.title}
-              </h1>
-              <p className="mt-7 max-w-[680px] text-lg leading-8 text-white/68 md:text-xl">
-                {heroContent.description}
-              </p>
-
-              <div className="mt-9 flex flex-wrap gap-4">
-                <a
-                  href="#booking"
-                  className="lux-button inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--accent)] px-8 text-sm font-bold text-[#0a0a0e] shadow-[0_18px_40px_rgba(210,176,107,0.24)] hover:bg-[var(--accent-dark)]"
-                >
-                  {heroContent.primaryButtonLabel}
-                </a>
-                <a
-                  href="/services"
-                  className="lux-button inline-flex min-h-14 items-center justify-center rounded-full border border-white/12 bg-white/3 px-8 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/6"
-                >
-                  {heroContent.secondaryButtonLabel}
-                </a>
-              </div>
-
-              <div className="mt-8 grid max-w-[920px] grid-cols-1 gap-4 sm:grid-cols-2">
-                {heroStats.map((item, index) => (
-                  <HeroStatCard key={`${item.value}-${index}`} item={item} />
-                ))}
-              </div>
-            </div>
-
-            <aside
-              id="booking"
-              className="booking-panel glass-panel fade-in overflow-hidden rounded-[1.4rem] p-6 md:p-8"
-              aria-label={heroContent.bookingEyebrow}
-            >
+    <aside
+      id="booking"
+      className="booking-panel glass-panel overflow-hidden rounded-[1.4rem] p-6 md:p-8"
+      aria-label={heroContent.bookingEyebrow}
+    >
               <div className="relative z-10 flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p className="lux-section-label">{heroContent.bookingEyebrow}</p>
@@ -1188,10 +1126,6 @@ export default function AnytimeAnywhereLimoWebsite({
                   </button>
                 </form>
               ) : null}
-            </aside>
-          </div>
-        </section>
-      </div>
-    </main>
+    </aside>
   );
 }

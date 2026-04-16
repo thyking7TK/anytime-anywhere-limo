@@ -1,6 +1,5 @@
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
-import PageTransition from "./_components/page-transition";
 
 export const viewport = {
   width: "device-width",
@@ -152,7 +151,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="min-h-full flex flex-col">
-        <PageTransition>{children}</PageTransition>
+        {children}
       </body>
     </html>
   );

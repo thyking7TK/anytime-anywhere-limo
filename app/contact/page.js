@@ -5,8 +5,8 @@ import SiteFloatingActions from "@/app/_components/site-floating-actions";
 import { getCatalog } from "@/lib/catalog";
 import { getSiteContent } from "@/lib/site-content";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+
+export const revalidate = 300;
 
 export const metadata = {
   title: "Contact & Book",
