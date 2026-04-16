@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -199,32 +198,50 @@ function MobileNav({ navItems, activePathname, brandContent }) {
   );
 }
 
-function BrandLogo({ brandContent }) {
-  const [imgError, setImgError] = useState(false);
+/**
+ * BrandLogo — shows the "A" mark cropped from logo.jpg beside the brand name text.
+ *
+ * The logo.jpg is 861×530. The A mark occupies roughly the top 42% of
+ * height and is horizontally centered. We render the image at 170px wide
+ * (scale ≈ 0.197) inside a 42×42 overflow:hidden container, offset so only
+ * the A mark is visible. mix-blend-mode:lighten makes the black background
+ * invisible on the dark header.
+ */
+function BrandLogo() {
+  return (
+    <div className="flex items-center gap-2 md:gap-3">
+      {/* Clipping container — shows only the A mark portion */}
+      <div
+        aria-hidden="true"
+        style={{
+          width: "42px",
+          height: "42px",
+          overflow: "hidden",
+          position: "relative",
+          flexShrink: 0,
+        }}
+      >
+        <img
+          src="/logo.jpg"
+          alt=""
+          style={{
+            width: "170px",
+            height: "auto",
+            position: "absolute",
+            top: "-2px",
+            left: "-64px",
+            mixBlendMode: "lighten",
+          }}
+        />
+      </div>
 
-  if (imgError) {
-    return (
+      {/* Brand name text */}
       <div>
-        <p className="font-display text-[1.3rem] leading-none tracking-[-0.02em] text-white md:text-[1.8rem]">
-          {brandContent.name || "Autovise Black Car"}
-        </p>
-        <p className="mt-1 hidden text-[0.7rem] uppercase tracking-[0.28em] text-white/54 sm:block">
-          {brandContent.subtitle || "Nationwide Luxury Transportation"}
+        <p className="font-display text-[1.15rem] leading-none tracking-[-0.02em] text-white md:text-[1.55rem]">
+          Autovise Black Car
         </p>
       </div>
-    );
-  }
-
-  return (
-    <Image
-      src="/logo.jpg"
-      alt="Autovise Black Car — Nationwide Luxury Transportation"
-      width={780}
-      height={312}
-      priority
-      onError={() => setImgError(true)}
-      className="h-10 w-auto md:h-14 mix-blend-lighten"
-    />
+    </div>
   );
 }
 
