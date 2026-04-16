@@ -8,6 +8,34 @@ import { getSiteContent } from "@/lib/site-content";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = {
+  title: "Contact & Book",
+  description:
+    "Reach Autovise Black Car concierge 24/7. Call +1 (207) 880-3733 or email booking@autoviseblackcar.com to reserve airport transfers, executive travel, long-distance rides, or VIP transportation.",
+  keywords: [
+    "book black car service",
+    "contact chauffeur service",
+    "luxury transportation booking",
+    "black car concierge",
+    "reserve private car",
+    "airport transfer booking",
+    "executive car booking",
+    "24/7 car service",
+  ],
+  alternates: { canonical: "https://autoviseblackcar.com/contact" },
+  openGraph: {
+    title: "Contact & Book | Autovise Black Car",
+    description:
+      "Reach concierge 24/7 at +1 (207) 880-3733 or booking@autoviseblackcar.com. Reserve your ride today.",
+    url: "https://autoviseblackcar.com/contact",
+  },
+  twitter: {
+    title: "Contact & Book | Autovise Black Car",
+    description:
+      "Reach concierge 24/7 at +1 (207) 880-3733 or booking@autoviseblackcar.com.",
+  },
+};
+
 export default async function ContactPage() {
   const [, siteContent] = await Promise.all([getCatalog(), getSiteContent()]);
 

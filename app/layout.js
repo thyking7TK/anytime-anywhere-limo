@@ -20,23 +20,56 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata = {
-  title: "Autovise Black Car | Nationwide Black Car Service - East Coast Based",
+  metadataBase: new URL("https://autoviseblackcar.com"),
+  title: {
+    default: "Autovise Black Car | Nationwide Black Car Service",
+    template: "%s | Autovise Black Car",
+  },
   description:
     "Autovise Black Car provides nationwide luxury transportation with primary operations across Maine, Massachusetts, and New York. Airport transfers, executive travel, long-distance service, VIP transportation, and hourly chauffeur bookings.",
+  keywords: [
+    "black car service",
+    "luxury transportation",
+    "airport transfer",
+    "chauffeur service",
+    "executive car service",
+    "private car service",
+    "limo service",
+    "black car Maine",
+    "black car Massachusetts",
+    "black car New York",
+    "nationwide black car",
+    "long distance car service",
+    "VIP transportation",
+    "Boston Logan airport transfer",
+    "JFK airport transfer",
+  ],
+  authors: [{ name: "Autovise Black Car" }],
+  creator: "Autovise Black Car",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-snippet": -1, "max-image-preview": "large" },
+  },
+  alternates: {
+    canonical: "https://autoviseblackcar.com",
+  },
   openGraph: {
     title: "Autovise Black Car | Nationwide Black Car Service",
     description:
       "Luxury. Reliability. Precision. Autovise Black Car delivers airport, executive, long-distance, VIP, and hourly chauffeur transportation nationwide.",
+    url: "https://autoviseblackcar.com",
     type: "website",
     siteName: "Autovise Black Car",
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
     title: "Autovise Black Car | Nationwide Black Car Service",
     description:
       "Nationwide luxury transportation with strong East Coast operations across Maine, Massachusetts, and New York.",
+    creator: "@autoviseblackcar",
   },
-  metadataBase: new URL("https://autoviseblackcar.com"),
 };
 
 const jsonLd = {

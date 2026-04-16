@@ -7,6 +7,35 @@ import { getSiteContent } from "@/lib/site-content";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = {
+  title: "Service Coverage",
+  description:
+    "Autovise Black Car operates primarily across Maine, Massachusetts, and New York — and provides luxury transportation nationwide by request. Airport transfers, executive travel, and long-distance service throughout the East Coast and beyond.",
+  keywords: [
+    "black car service Maine",
+    "black car service Massachusetts",
+    "black car service New York",
+    "Boston luxury transportation",
+    "Portland Maine car service",
+    "nationwide black car service",
+    "East Coast chauffeur",
+    "luxury transportation coverage",
+    "private car service East Coast",
+  ],
+  alternates: { canonical: "https://autoviseblackcar.com/coverage" },
+  openGraph: {
+    title: "Service Coverage | Autovise Black Car",
+    description:
+      "Primary operations across Maine, Massachusetts, and New York. Nationwide transportation available by request.",
+    url: "https://autoviseblackcar.com/coverage",
+  },
+  twitter: {
+    title: "Service Coverage | Autovise Black Car",
+    description:
+      "Primary operations across Maine, Massachusetts, and New York. Nationwide transportation available by request.",
+  },
+};
+
 const coverageAreas = [
   {
     name: "Maine",

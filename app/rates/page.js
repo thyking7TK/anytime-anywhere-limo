@@ -7,6 +7,35 @@ import { getSiteContent } from "@/lib/site-content";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = {
+  title: "Rates & Pricing",
+  description:
+    "Transparent pricing for every Autovise Black Car service. Flat-rate airport transfers, hourly chauffeur from $110/hr, executive corporate travel, and custom long-distance quotes — all confirmed before the ride begins.",
+  keywords: [
+    "black car rates",
+    "limo service pricing",
+    "airport transfer cost",
+    "chauffeur hourly rate",
+    "executive car service price",
+    "luxury transportation pricing",
+    "how much does a black car cost",
+    "private car service rates",
+    "long distance car service price",
+  ],
+  alternates: { canonical: "https://autoviseblackcar.com/rates" },
+  openGraph: {
+    title: "Rates & Pricing | Autovise Black Car",
+    description:
+      "Flat-rate airport transfers, hourly chauffeur from $110/hr, and custom long-distance quotes. All pricing confirmed before dispatch.",
+    url: "https://autoviseblackcar.com/rates",
+  },
+  twitter: {
+    title: "Rates & Pricing | Autovise Black Car",
+    description:
+      "Flat-rate airport transfers, hourly chauffeur from $110/hr, and custom long-distance quotes.",
+  },
+};
+
 export default async function RatesPage() {
   const [, siteContent] = await Promise.all([getCatalog(), getSiteContent()]);
 

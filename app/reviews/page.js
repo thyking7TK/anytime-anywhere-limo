@@ -8,6 +8,33 @@ import { testimonials as defaultTestimonials } from "@/lib/booking";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = {
+  title: "Client Reviews",
+  description:
+    "Read what passengers say about Autovise Black Car. Real reviews from clients who've experienced our airport transfers, executive travel, long-distance rides, and VIP transportation across Maine, Massachusetts, New York, and nationwide.",
+  keywords: [
+    "black car service reviews",
+    "luxury transportation testimonials",
+    "chauffeur service reviews",
+    "Autovise Black Car reviews",
+    "private car service testimonials",
+    "airport transfer reviews",
+    "executive car reviews",
+  ],
+  alternates: { canonical: "https://autoviseblackcar.com/reviews" },
+  openGraph: {
+    title: "Client Reviews | Autovise Black Car",
+    description:
+      "Real passenger reviews on airport transfers, executive travel, long-distance rides, and VIP transportation.",
+    url: "https://autoviseblackcar.com/reviews",
+  },
+  twitter: {
+    title: "Client Reviews | Autovise Black Car",
+    description:
+      "Real passenger reviews on airport transfers, executive travel, long-distance rides, and VIP transportation.",
+  },
+};
+
 export default async function ReviewsPage() {
   const [, siteContent] = await Promise.all([getCatalog(), getSiteContent()]);
 

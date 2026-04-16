@@ -9,6 +9,35 @@ import { services as defaultServices } from "@/lib/booking";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+export const metadata = {
+  title: "Our Services",
+  description:
+    "Autovise Black Car offers nationwide airport transfers, executive and corporate travel, long-distance private transportation, event and VIP service, and hourly chauffeur bookings. Premium black car for every journey.",
+  keywords: [
+    "airport transfer service",
+    "executive car service",
+    "corporate transportation",
+    "VIP black car service",
+    "long distance chauffeur",
+    "hourly car service",
+    "private car service",
+    "black car for events",
+    "luxury transportation services",
+  ],
+  alternates: { canonical: "https://autoviseblackcar.com/services" },
+  openGraph: {
+    title: "Our Services | Autovise Black Car",
+    description:
+      "Airport transfers, executive travel, long-distance rides, VIP service, and hourly chauffeur bookings — nationwide black car service.",
+    url: "https://autoviseblackcar.com/services",
+  },
+  twitter: {
+    title: "Our Services | Autovise Black Car",
+    description:
+      "Airport transfers, executive travel, long-distance rides, VIP service, and hourly chauffeur bookings.",
+  },
+};
+
 export default async function ServicesPage() {
   const [, siteContent] = await Promise.all([getCatalog(), getSiteContent()]);
 
