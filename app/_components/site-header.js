@@ -2,18 +2,190 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 function MobileNav({ navItems, activePathname, brandContent }) {
   const [isOpen, setIsOpen] = useState(false);
+  // Portal requires document — only available after client mount.
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Prevent body scroll while drawer is open.
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
 
   function close() {
     setIsOpen(false);
   }
 
+  /*
+    WHY A PORTAL?
+    The <header> has backdrop-filter: blur() which forces a new GPU
+    compositing layer in BOTH Chrome and Safari. Any fixed/absolute child
+    inside that stacking context is composited relative to the header layer,
+    not the viewport — the browser blends the content behind the header
+    through the child even when backgroundColor is fully opaque.
+
+    createPortal moves the overlay to document.body, completely outside
+    the header's stacking context. The panel is then a plain absolutely-
+    positioned child of a viewport-fixed div, painted and composited
+    independently with no ancestor filter in the chain.
+  */
+  const overlay = (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        // Prevent interaction when closed so taps fall through to the page.
+        pointerEvents: isOpen ? "auto" : "none",
+      }}
+    >
+      {/* ── SCRIM ───────────────────────────────────────────────────────
+          Semi-transparent — click it to close. Separate from the panel. */}
+      <div
+        aria-hidden="true"
+        onClick={close}
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "rgba(0,0,0,0.75)",
+          opacity: isOpen ? 1 : 0,
+          transition: "opacity 300ms ease",
+          // No backdrop-filter here — just a plain rgba fill.
+        }}
+      />
+
+      {/* ── PANEL ───────────────────────────────────────────────────────
+          Fully opaque. No backdrop-filter, no rgba, no opacity < 1.
+          backgroundColor is a solid hex value with no alpha channel.
+          All styles are inline — nothing can be purged or overridden. */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: "min(288px, 85vw)",
+          // SOLID — hex with no alpha. This is the opaque surface.
+          backgroundColor: "#07080d",
+          borderLeft: "1px solid rgba(200,168,112,0.15)",
+          display: "flex",
+          flexDirection: "column",
+          transform: isOpen ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 300ms ease-out",
+          // No filter, no backdropFilter, no opacity.
+          overflowY: "auto",
+        }}
+      >
+        {/* Panel header */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          padding: "20px 24px",
+          flexShrink: 0,
+        }}>
+          <div>
+            <p className="font-display" style={{ fontSize: "1.3rem", lineHeight: 1, color: "#ffffff" }}>
+              {brandContent.name}
+            </p>
+            <p style={{ marginTop: "4px", fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.3em", color: "var(--accent)" }}>
+              {brandContent.subtitle}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={close}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: "36px", height: "36px", borderRadius: "9999px",
+              border: "1px solid rgba(255,255,255,0.1)",
+              backgroundColor: "rgba(255,255,255,0.05)",
+              color: "rgba(255,255,255,0.6)",
+              cursor: "pointer",
+              fontSize: "1rem",
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Nav links */}
+        <nav style={{ display: "flex", flexDirection: "column", gap: "2px", padding: "16px" }}>
+          {navItems.map(([href, label]) => {
+            const isActive = activePathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={close}
+                aria-current={isActive ? "page" : undefined}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  borderRadius: "10px",
+                  padding: "13px 14px",
+                  fontSize: "0.9rem",
+                  fontWeight: 500,
+                  color: isActive ? "#ffffff" : "rgba(255,255,255,0.72)",
+                  backgroundColor: isActive ? "rgba(255,255,255,0.07)" : "transparent",
+                  border: isActive ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
+                  textDecoration: "none",
+                }}
+              >
+                <span style={{
+                  width: "6px", height: "6px", borderRadius: "9999px", flexShrink: 0,
+                  backgroundColor: isActive ? "var(--accent)" : "rgba(255,255,255,0.22)",
+                }} />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Reserve Now CTA */}
+        <div style={{ marginTop: "auto", borderTop: "1px solid rgba(255,255,255,0.08)", padding: "16px" }}>
+          <Link
+            href="/#booking"
+            onClick={close}
+            className="lux-button"
+            style={{
+              display: "flex",
+              minHeight: "48px",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "9999px",
+              backgroundColor: "var(--accent)",
+              padding: "0 24px",
+              fontSize: "0.875rem",
+              fontWeight: 700,
+              color: "#0a0a0e",
+              textDecoration: "none",
+            }}
+          >
+            Reserve Now
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <>
-      {/* Hamburger button */}
+      {/* Hamburger — stays inside the header */}
       <button
         type="button"
         aria-label={isOpen ? "Close menu" : "Open menu"}
@@ -26,132 +198,9 @@ function MobileNav({ navItems, activePathname, brandContent }) {
         <span className={`block h-px w-5 bg-white/80 transition-transform duration-300 ${isOpen ? "-translate-y-[6px] -rotate-45" : ""}`} />
       </button>
 
-      {/*
-        Full-screen fixed container — holds both scrim and panel.
-        Using a single fixed parent avoids the iOS compositing bug where
-        a fixed child's background-color gets dropped when backdrop-filter
-        is active anywhere on the page.
-      */}
-      <div
-        className="lg:hidden"
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 9999,
-          pointerEvents: isOpen ? "auto" : "none",
-        }}
-        aria-hidden={!isOpen}
-      >
-        {/* Scrim — darkens the page behind the panel */}
-        <div
-          onClick={close}
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.72)",
-            opacity: isOpen ? 1 : 0,
-            transition: "opacity 300ms ease",
-          }}
-        />
-
-        {/* Drawer panel — absolutely positioned inside the fixed container.
-            All visual styles are inline so no Tailwind class can be purged,
-            overridden, or composited away. */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            bottom: 0,
-            width: "288px",
-            backgroundColor: "#07080d",
-            borderLeft: "1px solid rgba(255,255,255,0.1)",
-            display: "flex",
-            flexDirection: "column",
-            transform: isOpen ? "translateX(0)" : "translateX(100%)",
-            transition: "transform 300ms ease-out",
-          }}
-        >
-          {/* Header */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "20px 24px" }}>
-            <div>
-              <p className="font-display text-[1.3rem] leading-none text-white">
-                {brandContent.name}
-              </p>
-              <p className="mt-1 text-[0.62rem] uppercase tracking-[0.3em] text-[var(--accent)]">
-                {brandContent.subtitle}
-              </p>
-            </div>
-            <button
-              type="button"
-              aria-label="Close menu"
-              onClick={close}
-              className="flex items-center justify-center w-9 h-9 rounded-full border border-white/10 text-white/60 hover:text-white"
-              style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Nav links */}
-          <nav style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "20px" }}>
-            {navItems.map(([href, label]) => {
-              const isActive = activePathname === href;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={close}
-                  aria-current={isActive ? "page" : undefined}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    borderRadius: "12px",
-                    padding: "14px 16px",
-                    fontSize: "0.875rem",
-                    fontWeight: 500,
-                    color: isActive ? "#ffffff" : "rgba(255,255,255,0.7)",
-                    backgroundColor: isActive ? "rgba(255,255,255,0.06)" : "transparent",
-                    border: isActive ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
-                    textDecoration: "none",
-                  }}
-                >
-                  <span style={{
-                    width: "6px", height: "6px", borderRadius: "9999px", flexShrink: 0,
-                    backgroundColor: isActive ? "var(--accent)" : "rgba(255,255,255,0.2)",
-                  }} />
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Reserve Now CTA */}
-          <div style={{ marginTop: "auto", borderTop: "1px solid rgba(255,255,255,0.08)", padding: "20px" }}>
-            <Link
-              href="/#booking"
-              onClick={close}
-              className="lux-button"
-              style={{
-                display: "flex",
-                minHeight: "48px",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "9999px",
-                backgroundColor: "var(--accent)",
-                padding: "0 24px",
-                fontSize: "0.875rem",
-                fontWeight: 700,
-                color: "#0a0a0e",
-                textDecoration: "none",
-              }}
-            >
-              Reserve Now
-            </Link>
-          </div>
-        </div>
-      </div>
+      {/* Portal renders the overlay as a direct child of <body>,
+          completely outside the header's backdrop-filter stacking context. */}
+      {mounted && createPortal(overlay, document.body)}
     </>
   );
 }
