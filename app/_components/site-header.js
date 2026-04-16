@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -96,14 +97,13 @@ function MobileNav({ navItems, activePathname, brandContent }) {
           padding: "20px 24px",
           flexShrink: 0,
         }}>
-          <div>
-            <p className="font-display" style={{ fontSize: "1.3rem", lineHeight: 1, color: "#ffffff" }}>
-              {brandContent.name}
-            </p>
-            <p style={{ marginTop: "4px", fontSize: "0.62rem", textTransform: "uppercase", letterSpacing: "0.3em", color: "var(--accent)" }}>
-              {brandContent.subtitle}
-            </p>
-          </div>
+          <Image
+            src="/logo.png"
+            alt="Autovise Black Car"
+            width={780}
+            height={312}
+            className="h-10 w-auto mix-blend-lighten"
+          />
           <button
             type="button"
             aria-label="Close menu"
@@ -222,13 +222,15 @@ export default function SiteHeader({ siteContent }) {
   return (
     <header className="sticky top-0 z-30 border-b border-white/6 bg-[rgba(5,6,10,0.72)] backdrop-blur-xl">
       <div className="limo-container flex min-h-[64px] items-center justify-between gap-4 md:min-h-[80px] md:gap-6">
-        <Link href="/" aria-label={`${brandContent.name || "Autovise Black Car"} home`} className="shrink-0">
-          <p className="font-display text-[1.3rem] leading-none tracking-[-0.02em] text-white md:text-[1.8rem]">
-            {brandContent.name}
-          </p>
-          <p className="mt-1 hidden text-[0.72rem] uppercase tracking-[0.28em] text-white/54 sm:block">
-            {brandContent.subtitle}
-          </p>
+        <Link href="/" aria-label="Autovise Black Car — Nationwide Luxury Transportation" className="shrink-0">
+          <Image
+            src="/logo.png"
+            alt="Autovise Black Car — Nationwide Luxury Transportation"
+            width={780}
+            height={312}
+            priority
+            className="h-10 w-auto md:h-14 mix-blend-lighten"
+          />
         </Link>
 
         <nav className="hidden items-center gap-3 text-[0.98rem] text-white/84 lg:flex">
