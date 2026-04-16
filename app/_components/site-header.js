@@ -40,7 +40,8 @@ function MobileNav({ navItems, activePathname, brandContent }) {
       )}
 
       <div
-        className={`fixed inset-y-0 right-0 z-50 w-72 flex flex-col lg:hidden border-l border-white/10 bg-[#07080d] backdrop-blur-xl transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        className={`fixed inset-y-0 right-0 z-50 w-72 flex flex-col lg:hidden border-l border-white/10 transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+        style={{ backgroundColor: "#07080d" }}
       >
         <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
           <div>
