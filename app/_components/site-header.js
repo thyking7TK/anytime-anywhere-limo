@@ -97,13 +97,7 @@ function MobileNav({ navItems, activePathname, brandContent }) {
           padding: "20px 24px",
           flexShrink: 0,
         }}>
-          <Image
-            src="/logo.png"
-            alt="Autovise Black Car"
-            width={780}
-            height={312}
-            className="h-10 w-auto mix-blend-lighten"
-          />
+          <BrandLogo brandContent={brandContent} />
           <button
             type="button"
             aria-label="Close menu"
@@ -205,6 +199,35 @@ function MobileNav({ navItems, activePathname, brandContent }) {
   );
 }
 
+function BrandLogo({ brandContent }) {
+  const [imgError, setImgError] = useState(false);
+
+  if (imgError) {
+    return (
+      <div>
+        <p className="font-display text-[1.3rem] leading-none tracking-[-0.02em] text-white md:text-[1.8rem]">
+          {brandContent.name || "Autovise Black Car"}
+        </p>
+        <p className="mt-1 hidden text-[0.7rem] uppercase tracking-[0.28em] text-white/54 sm:block">
+          {brandContent.subtitle || "Nationwide Luxury Transportation"}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src="/logo.png"
+      alt="Autovise Black Car — Nationwide Luxury Transportation"
+      width={780}
+      height={312}
+      priority
+      onError={() => setImgError(true)}
+      className="h-10 w-auto md:h-14 mix-blend-lighten"
+    />
+  );
+}
+
 export default function SiteHeader({ siteContent }) {
   const pathname = usePathname();
   const brandContent = siteContent?.brand ?? {};
@@ -223,14 +246,7 @@ export default function SiteHeader({ siteContent }) {
     <header className="sticky top-0 z-30 border-b border-white/6 bg-[rgba(5,6,10,0.72)] backdrop-blur-xl">
       <div className="limo-container flex min-h-[64px] items-center justify-between gap-4 md:min-h-[80px] md:gap-6">
         <Link href="/" aria-label="Autovise Black Car — Nationwide Luxury Transportation" className="shrink-0">
-          <Image
-            src="/logo.png"
-            alt="Autovise Black Car — Nationwide Luxury Transportation"
-            width={780}
-            height={312}
-            priority
-            className="h-10 w-auto md:h-14 mix-blend-lighten"
-          />
+          <BrandLogo brandContent={brandContent} />
         </Link>
 
         <nav className="hidden items-center gap-3 text-[0.98rem] text-white/84 lg:flex">
