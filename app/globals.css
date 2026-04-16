@@ -498,6 +498,18 @@ textarea {
   }
 }
 
+/* ── Mobile nav drawer ───────────────────────────────── */
+/*
+  Hard-coded in plain CSS so no Tailwind purge, arbitrary-value issue,
+  or backdrop-filter compositing can make the panel transparent.
+  This is the single source of truth for the drawer background.
+*/
+.mobile-nav-drawer {
+  background-color: #07080d;
+  background-image: linear-gradient(160deg, #0d0e14 0%, #07080d 60%);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

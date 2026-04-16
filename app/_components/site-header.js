@@ -39,55 +39,60 @@ function MobileNav({ navItems, activePathname, brandContent }) {
         />
       )}
 
+      {/* Slide-animation wrapper — no background here, just handles the transform */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 w-72 flex flex-col lg:hidden border-l border-white/10 transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
-        style={{ backgroundColor: "#07080d" }}
+        className={`fixed inset-y-0 right-0 z-50 w-72 lg:hidden transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
       >
-        <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
-          <div>
-            <p className="font-display text-[1.3rem] leading-none text-white">
-              {brandContent.name}
-            </p>
-            <p className="mt-1 text-[0.62rem] uppercase tracking-[0.3em] text-[var(--accent)]">
-              {brandContent.subtitle}
-            </p>
+        {/* Inner panel — solid background defined in globals.css .mobile-nav-drawer
+            so no Tailwind purge, arbitrary-value failure, or backdrop-filter
+            compositing on iOS can ever make this transparent */}
+        <div className="mobile-nav-drawer flex h-full flex-col">
+          <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
+            <div>
+              <p className="font-display text-[1.3rem] leading-none text-white">
+                {brandContent.name}
+              </p>
+              <p className="mt-1 text-[0.62rem] uppercase tracking-[0.3em] text-[var(--accent)]">
+                {brandContent.subtitle}
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="Close menu"
+              onClick={close}
+              className="flex items-center justify-center w-9 h-9 rounded-full border border-white/10 bg-white/4 text-white/60 hover:text-white"
+            >
+              ✕
+            </button>
           </div>
-          <button
-            type="button"
-            aria-label="Close menu"
-            onClick={close}
-            className="flex items-center justify-center w-9 h-9 rounded-full border border-white/10 bg-white/4 text-white/60 hover:text-white"
-          >
-            ✕
-          </button>
-        </div>
 
-        <nav className="flex flex-col gap-1 p-5">
-          {navItems.map(([href, label]) => {
-            const isActive = activePathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={close}
-                className={`flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors ${isActive ? "bg-white/6 text-white border border-white/10" : "text-white/70 hover:bg-white/4 hover:text-white"}`}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-[var(--accent)]" : "bg-white/20"}`} />
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
+          <nav className="flex flex-col gap-1 p-5">
+            {navItems.map(([href, label]) => {
+              const isActive = activePathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={close}
+                  className={`flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-colors ${isActive ? "bg-white/6 text-white border border-white/10" : "text-white/70 hover:bg-white/4 hover:text-white"}`}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-[var(--accent)]" : "bg-white/20"}`} />
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
 
-        <div className="mt-auto border-t border-white/8 p-5">
-          <Link
-            href="/#booking"
-            onClick={close}
-            className="lux-button flex min-h-12 items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e]"
-          >
-            Reserve Now
-          </Link>
+          <div className="mt-auto border-t border-white/8 p-5">
+            <Link
+              href="/#booking"
+              onClick={close}
+              className="lux-button flex min-h-12 items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e]"
+            >
+              Reserve Now
+            </Link>
+          </div>
         </div>
       </div>
     </>
