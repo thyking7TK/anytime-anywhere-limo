@@ -38,11 +38,11 @@ export default async function ServicesPage() {
               {servicesSection.description || "From airport transfers to executive travel and VIP events, Autovise delivers a premium experience at every mile."}
             </p>
 
-            <div className="mt-10 grid gap-5 xl:grid-cols-3">
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {serviceEntries.map((service) => (
-                <article key={service.id} className="glass-panel fade-in soft-lift rounded-[1.4rem] p-7">
+                <article key={service.id} className="glass-panel fade-in soft-lift rounded-[1.4rem] p-6 sm:p-7">
                   <p className="lux-section-label">{service.eyebrow}</p>
-                  <h3 className="mt-4 font-display text-[2rem] leading-none text-white md:text-[2.25rem]">{service.title}</h3>
+                  <h3 className="mt-4 font-display text-[1.8rem] leading-none text-white md:text-[2.25rem]">{service.title}</h3>
                   <p className="mt-4 text-sm leading-7 text-white/68">{service.text}</p>
                   <Link href="/#booking" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent)] hover:gap-4 transition-all">
                     Reserve this service <span aria-hidden="true">→</span>

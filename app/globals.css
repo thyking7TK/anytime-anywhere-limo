@@ -360,7 +360,7 @@ textarea {
 
 .floating-call {
   position: fixed;
-  bottom: 28px;
+  bottom: max(28px, calc(16px + env(safe-area-inset-bottom)));
   right: 22px;
   z-index: 40;
   display: inline-flex;
@@ -455,14 +455,29 @@ textarea {
   }
 }
 
+/* ── Scroll-to-top button safe area ─────────────────── */
+.scroll-top-btn {
+  position: fixed;
+  bottom: max(26px, calc(14px + env(safe-area-inset-bottom)));
+  left: 20px;
+  z-index: 40;
+}
+
+@media (min-width: 640px) {
+  .scroll-top-btn {
+    bottom: max(28px, calc(16px + env(safe-area-inset-bottom)));
+    left: 24px;
+  }
+}
+
 @media (max-width: 760px) {
   .limo-container {
-    width: min(100% - 20px, 1240px);
+    width: min(100% - 24px, 1240px);
   }
 
   .floating-call {
     right: 14px;
-    bottom: 20px;
+    bottom: max(20px, calc(12px + env(safe-area-inset-bottom)));
     padding: 11px 16px;
     gap: 8px;
     font-size: 0.82rem;

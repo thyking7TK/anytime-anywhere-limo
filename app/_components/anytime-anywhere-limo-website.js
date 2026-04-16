@@ -531,13 +531,13 @@ export default function AnytimeAnywhereLimoWebsite({
         </div>
 
         <section className="relative z-10 px-4 pb-8 pt-6 sm:px-5 md:pb-12 md:pt-10">
-          <div className="limo-container grid gap-8 xl:grid-cols-[1.02fr_0.98fr] xl:items-stretch">
+          <div className="limo-container grid gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-stretch">
             <div className="fade-in py-4 md:py-10">
               <div className="lux-eyebrow">{heroContent.eyebrow}</div>
               <p className="mt-6 text-[0.92rem] uppercase tracking-[0.28em] text-[var(--accent)]">
                 {heroContent.kicker}
               </p>
-              <h1 className="mt-7 max-w-[820px] font-display text-[2rem] leading-[1] tracking-[-0.03em] text-white sm:text-[3rem] lg:text-[4.6rem] xl:text-[6rem]">
+              <h1 className="mt-7 max-w-[820px] font-display text-[2rem] leading-[1] tracking-[-0.03em] text-white sm:text-[2.8rem] md:text-[3.8rem] lg:text-[4.6rem] xl:text-[5.4rem]">
                 {heroContent.title}
               </h1>
               <p className="mt-7 max-w-[680px] text-lg leading-8 text-white/68 md:text-xl">
@@ -581,7 +581,7 @@ export default function AnytimeAnywhereLimoWebsite({
                     {heroContent.bookingDescription}
                   </p>
                 </div>
-                <div className="rounded-full border border-white/10 bg-white/4 px-4 py-3 text-[0.76rem] uppercase tracking-[0.26em] text-[var(--accent)] shadow-[0_14px_36px_rgba(210,176,107,0.1)]">
+                <div className="w-fit self-start rounded-full border border-white/10 bg-white/4 px-4 py-3 text-[0.76rem] uppercase tracking-[0.26em] text-[var(--accent)] shadow-[0_14px_36px_rgba(210,176,107,0.1)]">
                   {heroContent.bookingPill}
                 </div>
               </div>

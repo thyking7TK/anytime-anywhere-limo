@@ -2,6 +2,12 @@ import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 import PageTransition from "./_components/page-transition";
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],

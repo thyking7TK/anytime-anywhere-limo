@@ -49,7 +49,7 @@ export default async function CoveragePage() {
               We proudly provide transportation services across the United States, with primary operations in Maine, Massachusetts, and New York.
             </p>
 
-            <div className="mt-10 grid gap-5 md:grid-cols-3">
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
               {coverageAreas.map((area) => (
                 <article key={area.name} className="glass-panel soft-lift rounded-[1.4rem] p-7">
                   <p className="lux-section-label !mb-0 text-[0.7rem]">Primary Operations</p>

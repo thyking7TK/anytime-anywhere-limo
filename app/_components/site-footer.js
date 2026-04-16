@@ -3,7 +3,7 @@ export default function SiteFooter({ siteContent }) {
   const footerContent = siteContent?.footer ?? {};
 
   return (
-    <footer className="border-t border-[rgba(200,168,112,0.12)] px-5 pb-16 pt-10">
+    <footer className="border-t border-[rgba(200,168,112,0.12)] px-5 pb-28 pt-10 md:pb-16">
       <div className="limo-container">
         <div className="mb-8 flex flex-col gap-2">
           <p className="font-display text-[1.6rem] leading-none tracking-[-0.02em] text-white/90">

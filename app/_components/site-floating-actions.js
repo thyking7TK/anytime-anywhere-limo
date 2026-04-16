@@ -24,7 +24,7 @@ export default function SiteFloatingActions({ contactPhone, callLabel }) {
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         aria-label="Back to top"
         style={{ animation: showScrollTop ? "float-button 3s ease-in-out infinite" : "none" }}
-        className={`fixed bottom-[26px] left-5 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[#0a0a0e] shadow-[0_8px_32px_rgba(200,168,112,0.28),0_2px_8px_rgba(0,0,0,0.3)] transition-all duration-300 hover:bg-[var(--accent-dark)] sm:bottom-[28px] sm:left-6 ${showScrollTop ? "opacity-100 pointer-events-auto" : "opacity-0 translate-y-3 pointer-events-none"}`}
+        className={`scroll-top-btn flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[#0a0a0e] shadow-[0_8px_32px_rgba(200,168,112,0.28),0_2px_8px_rgba(0,0,0,0.3)] transition-all duration-300 hover:bg-[var(--accent-dark)] ${showScrollTop ? "opacity-100 pointer-events-auto" : "opacity-0 translate-y-3 pointer-events-none"}`}
       >
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M8 12V4M8 4L4 8M8 4L12 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

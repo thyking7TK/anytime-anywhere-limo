@@ -31,58 +31,58 @@ export default async function RatesPage() {
               Airport transfers, executive bookings, long-distance travel, and VIP transportation are quoted clearly so clients know what to expect before the trip is confirmed.
             </p>
 
-            <div className="mt-10 grid gap-5 md:grid-cols-3">
-              <article className="glass-panel soft-lift rounded-[1.4rem] p-7 md:col-span-1">
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <article className="glass-panel soft-lift rounded-[1.4rem] p-6 sm:p-7">
                 <p className="lux-section-label !mb-0 text-[0.7rem]">Airport Transfers</p>
-                <h3 className="mt-4 font-display text-[1.8rem] leading-tight text-white">Major Airports</h3>
+                <h3 className="mt-4 font-display text-[1.7rem] leading-tight text-white sm:text-[1.8rem]">Major Airports</h3>
                 <div className="mt-5 space-y-3 border-t border-white/8 pt-5 text-sm text-white/68">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
                     <span>Boston Logan (BOS)</span>
                     <span className="font-semibold text-white">Flat-rate quote</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
                     <span>JFK & LaGuardia</span>
                     <span className="font-semibold text-white">Coordinated pickup</span>
                   </div>
-                  <div className="flex items-center justify-between border-t border-white/8 pt-3">
+                  <div className="flex flex-wrap items-center justify-between gap-1 border-t border-white/8 pt-3">
                     <span>Nationwide airports</span>
                     <span className="font-semibold text-white">By request</span>
                   </div>
                 </div>
               </article>
 
-              <article className="glass-panel soft-lift rounded-[1.4rem] p-7 md:col-span-1">
+              <article className="glass-panel soft-lift rounded-[1.4rem] p-6 sm:p-7">
                 <p className="lux-section-label !mb-0 text-[0.7rem]">Executive & Hourly</p>
-                <h3 className="mt-4 font-display text-[1.8rem] leading-tight text-white">On Your Schedule</h3>
+                <h3 className="mt-4 font-display text-[1.7rem] leading-tight text-white sm:text-[1.8rem]">On Your Schedule</h3>
                 <div className="mt-5 space-y-3 border-t border-white/8 pt-5 text-sm text-white/68">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
                     <span>Corporate travel</span>
                     <span className="font-semibold text-white">Quoted upfront</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
                     <span>Hourly chauffeur</span>
                     <span className="font-semibold text-white">$110/hr starting</span>
                   </div>
-                  <div className="flex items-center justify-between border-t border-white/8 pt-3">
+                  <div className="flex flex-wrap items-center justify-between gap-1 border-t border-white/8 pt-3">
                     <span>Dedicated support</span>
                     <span className="font-semibold text-white">Multi-stop ready</span>
                   </div>
                 </div>
               </article>
 
-              <article className="glass-panel soft-lift rounded-[1.4rem] p-7 md:col-span-1">
+              <article className="glass-panel soft-lift rounded-[1.4rem] p-6 sm:col-span-2 sm:p-7 lg:col-span-1">
                 <p className="lux-section-label !mb-0 text-[0.7rem]">Long-Distance & VIP</p>
-                <h3 className="mt-4 font-display text-[1.8rem] leading-tight text-white">Custom Itineraries</h3>
+                <h3 className="mt-4 font-display text-[1.7rem] leading-tight text-white sm:text-[1.8rem]">Custom Itineraries</h3>
                 <div className="mt-5 space-y-3 border-t border-white/8 pt-5 text-sm text-white/68">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
                     <span>State-line travel</span>
                     <span className="font-semibold text-white">Door to door</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
                     <span>Events & VIP rides</span>
                     <span className="font-semibold text-white">Custom quote</span>
                   </div>
-                  <div className="flex items-center justify-between border-t border-white/8 pt-3">
+                  <div className="flex flex-wrap items-center justify-between gap-1 border-t border-white/8 pt-3">
                     <span>Stops & wait time</span>
                     <span className="font-semibold text-white">Confirmed upfront</span>
                   </div>

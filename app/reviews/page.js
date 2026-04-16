@@ -35,7 +35,7 @@ export default async function ReviewsPage() {
                 {reviewsSection.title || "What our clients say."}
               </h1>
 
-              <div className="mt-10 grid gap-5 xl:grid-cols-3">
+              <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {testimonialEntries.map((item, index) => (
                   <article
                     key={`${item.name}-${index}`}

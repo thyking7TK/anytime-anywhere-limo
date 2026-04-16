@@ -49,7 +49,7 @@ export default async function ContactPage() {
                   Free cancellation up to 24 hours before pickup. Wait time billed at $40/hr. Extra stops $25–$50.
                 </p>
 
-                <div className="mt-8 flex flex-wrap gap-4">
+                <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
                   <Link
                     href="/#booking"
                     className="lux-button inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--accent)] px-8 text-sm font-bold text-[#0a0a0e] hover:bg-[var(--accent-dark)]"
@@ -70,7 +70,7 @@ export default async function ContactPage() {
                   <p className="lux-section-label !mb-0 text-[0.7rem]">{contactSection.phoneLabel || "Phone"}</p>
                   <a
                     href={contactPhoneHref}
-                    className="mt-4 block font-display text-[1.9rem] leading-tight text-white"
+                    className="mt-4 block font-display text-[1.4rem] leading-tight text-white sm:text-[1.7rem] md:text-[1.9rem]"
                   >
                     {resolvedContactPhone}
                   </a>
@@ -80,7 +80,7 @@ export default async function ContactPage() {
                   <p className="lux-section-label !mb-0 text-[0.7rem]">{contactSection.emailLabel || "Email"}</p>
                   <a
                     href={contactEmailHref}
-                    className="mt-4 block break-all font-display text-[1.9rem] leading-tight text-white"
+                    className="mt-4 block break-all font-display text-[1.1rem] leading-snug text-white sm:text-[1.4rem] md:text-[1.7rem]"
                   >
                     {resolvedContactEmail}
                   </a>
@@ -88,7 +88,7 @@ export default async function ContactPage() {
 
                 <article className="glass-panel soft-lift rounded-[1.4rem] p-6">
                   <p className="lux-section-label !mb-0 text-[0.7rem]">{contactSection.availabilityLabel || "Availability"}</p>
-                  <p className="mt-4 font-display text-[1.9rem] leading-tight text-white">
+                  <p className="mt-4 font-display text-[1.3rem] leading-snug text-white sm:text-[1.6rem] md:text-[1.9rem]">
                     {contactSection.availabilityValue || "24/7, 365 days"}
                   </p>
                 </article>

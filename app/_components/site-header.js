@@ -114,7 +114,7 @@ export default function SiteHeader({ siteContent }) {
           <p className="font-display text-[1.3rem] leading-none tracking-[-0.02em] text-white md:text-[1.8rem]">
             {brandContent.name}
           </p>
-          <p className="mt-1 text-[0.72rem] uppercase tracking-[0.28em] text-white/54">
+          <p className="mt-1 hidden text-[0.72rem] uppercase tracking-[0.28em] text-white/54 sm:block">
             {brandContent.subtitle}
           </p>
         </Link>
