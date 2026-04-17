@@ -480,6 +480,18 @@ textarea {
 }
 
 @media (max-width: 760px) {
+  /*
+    Prevent iOS Safari / Android Chrome from auto-zooming and panning
+    the viewport when an input is focused. Browsers zoom when font-size
+    is below 16px; locking it to 16px on mobile stops the horizontal
+    viewport pan that makes the form appear to slide left.
+  */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
   .limo-container {
     width: min(100% - 24px, 1240px);
   }

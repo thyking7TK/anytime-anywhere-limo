@@ -512,7 +512,7 @@ export default function AnytimeAnywhereLimoWebsite({
   return (
     <aside
       id="booking"
-      className="booking-panel glass-panel overflow-hidden rounded-[1.4rem] p-6 md:p-8"
+      className="booking-panel glass-panel min-w-0 overflow-hidden rounded-[1.4rem] p-6 md:p-8"
       aria-label={heroContent.bookingEyebrow}
     >
               <div className="relative z-10 flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-start md:justify-between">

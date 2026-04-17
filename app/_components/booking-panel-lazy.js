@@ -30,7 +30,7 @@ const BookingForm = dynamic(
     loading: () => (
       <aside
         id="booking"
-        className="booking-panel glass-panel overflow-hidden rounded-[1.4rem] p-6 md:p-8"
+        className="booking-panel glass-panel min-w-0 overflow-hidden rounded-[1.4rem] p-6 md:p-8"
         aria-label="Loading booking form"
       >
         <div className="animate-pulse">
