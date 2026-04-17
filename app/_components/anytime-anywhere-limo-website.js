@@ -768,23 +768,6 @@ export default function AnytimeAnywhereLimoWebsite({
                       error={errors.dropoff}
                     />
 
-                    {(isCalculatingDistance || distanceInfo) && (
-                      <div className="md:col-span-2 flex items-center gap-3 rounded-[1.1rem] border border-white/8 bg-white/3 px-4 py-3">
-                        {isCalculatingDistance ? (
-                          <p className="text-xs text-white/40 animate-pulse">Calculating route...</p>
-                        ) : distanceInfo ? (
-                          <>
-                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
-                            <p className="text-sm text-white/70">
-                              <span className="font-semibold text-white">{distanceInfo.distanceMiles} miles</span>
-                              <span className="mx-2 text-white/24">/</span>
-                              <span className="font-semibold text-white">~{distanceInfo.durationMinutes} min</span>
-                            </p>
-                          </>
-                        ) : null}
-                      </div>
-                    )}
-
                     <label className="block">
                       <span className="mb-2 block text-sm text-white/72">Date</span>
                       <input
