@@ -221,15 +221,22 @@ export default function AnytimeAnywhereLimoWebsite({
   const [dropoffCoords, setDropoffCoords] = useState(null);
   const [distanceInfo, setDistanceInfo] = useState(null);
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+  const [distanceError, setDistanceError] = useState("");
 
   useEffect(() => {
     if (!pickupCoords || !dropoffCoords) {
       setDistanceInfo(null);
+      setDistanceError("");
+      setForm((current) => {
+        if (current.service !== "custom") return current;
+        return { ...current, estimatedTripMiles: "0", estimatedTripHours: "0" };
+      });
       return undefined;
     }
 
     const timer = setTimeout(async () => {
       setIsCalculatingDistance(true);
+      setDistanceError("");
       try {
         const params = new URLSearchParams({
           pickupLat: pickupCoords.lat,
@@ -238,23 +245,22 @@ export default function AnytimeAnywhereLimoWebsite({
           dropoffLon: dropoffCoords.lon,
         });
         const response = await fetch(`/api/distance?${params}`);
-        if (!response.ok) return;
+        if (!response.ok) throw new Error("Distance API error");
         const data = await response.json();
         setDistanceInfo(data);
+        setDistanceError("");
         setForm((current) => {
           if (current.service !== "custom") return current;
           const autoMiles = String(Math.round(data.distanceMiles));
           const autoHours = String(Math.round(data.durationHours * 2) / 2);
-          const milesUnchanged = !current.estimatedTripMiles || current.estimatedTripMiles === "0";
-          const hoursUnchanged = !current.estimatedTripHours || current.estimatedTripHours === "0";
           return {
             ...current,
-            estimatedTripMiles: milesUnchanged ? autoMiles : current.estimatedTripMiles,
-            estimatedTripHours: hoursUnchanged ? autoHours : current.estimatedTripHours,
+            estimatedTripMiles: autoMiles,
+            estimatedTripHours: autoHours,
           };
         });
       } catch {
-        // silent — distance is a UI helper, not critical
+        setDistanceError("Could not calculate route. Please try again or contact us directly.");
       } finally {
         setIsCalculatingDistance(false);
       }
@@ -977,14 +983,19 @@ export default function AnytimeAnywhereLimoWebsite({
                     {form.service === "custom" ? (
                       <>
                         <label className="block">
-                          <span className="mb-2 block text-sm text-white/72">Estimated Trip Hours</span>
+                          <span className="mb-2 flex items-center gap-2 text-sm text-white/72">
+                            Estimated Trip Hours
+                            <span className="rounded-full bg-white/8 px-2 py-0.5 text-[0.65rem] uppercase tracking-widest text-[var(--accent)]">
+                              {isCalculatingDistance ? "Calculating…" : "Auto-calculated"}
+                            </span>
+                          </span>
                           <input
                             type="number"
                             min="0"
                             step="0.5"
                             value={form.estimatedTripHours}
-                            onChange={(event) => updateField("estimatedTripHours", event.target.value)}
-                            className={fieldClassName}
+                            readOnly
+                            className={`${fieldClassName} cursor-default opacity-70`}
                           />
                           {errors.estimatedTripHours ? (
                             <span className="mt-2 block text-sm text-amber-200">
@@ -994,14 +1005,19 @@ export default function AnytimeAnywhereLimoWebsite({
                         </label>
 
                         <label className="block">
-                          <span className="mb-2 block text-sm text-white/72">Estimated Trip Miles</span>
+                          <span className="mb-2 flex items-center gap-2 text-sm text-white/72">
+                            Estimated Trip Miles
+                            <span className="rounded-full bg-white/8 px-2 py-0.5 text-[0.65rem] uppercase tracking-widest text-[var(--accent)]">
+                              {isCalculatingDistance ? "Calculating…" : "Auto-calculated"}
+                            </span>
+                          </span>
                           <input
                             type="number"
                             min="0"
                             step="1"
                             value={form.estimatedTripMiles}
-                            onChange={(event) => updateField("estimatedTripMiles", event.target.value)}
-                            className={fieldClassName}
+                            readOnly
+                            className={`${fieldClassName} cursor-default opacity-70`}
                           />
                           {errors.estimatedTripMiles ? (
                             <span className="mt-2 block text-sm text-amber-200">
@@ -1009,6 +1025,12 @@ export default function AnytimeAnywhereLimoWebsite({
                             </span>
                           ) : null}
                         </label>
+
+                        {distanceError ? (
+                          <p className="rounded-lg border border-amber-400/20 bg-amber-400/8 px-4 py-3 text-sm text-amber-200">
+                            {distanceError}
+                          </p>
+                        ) : null}
 
                         <label className="block">
                           <span className="mb-2 block text-sm text-white/72">Extra Stops</span>
