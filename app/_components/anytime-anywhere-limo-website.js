@@ -18,7 +18,7 @@ import {
 import { getDefaultSiteContent } from "@/lib/site-content-shared";
 
 const fieldClassName =
-  "frost-input w-full rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-4 text-sm text-white outline-none placeholder:text-white/32 focus:border-[var(--accent)] focus:bg-white/7";
+  "frost-input w-full min-w-0 rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-4 text-sm text-white outline-none placeholder:text-white/32 focus:border-[var(--accent)] focus:bg-white/7";
 const addressSuggestionCache = new Map();
 
 const proofChips = [
@@ -98,9 +98,9 @@ function AddressAutocompleteField({
     isFocused && (suggestions.length > 0 || (value.trim().length >= 3 && isLoading));
 
   return (
-    <label className="block">
+    <label className="block min-w-0">
       <span className="mb-2 block text-sm text-white/72">{label}</span>
-      <div className="relative">
+      <div className="relative min-w-0">
         <input
           type="text"
           value={value}
@@ -613,7 +613,7 @@ export default function AnytimeAnywhereLimoWebsite({
 
               {!submittedBooking ? (
                 <form onSubmit={handleSubmit} className="relative z-10 mt-6" noValidate aria-label="Booking request form">
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-2 min-w-0">
                     <label className="block" htmlFor="field-service">
                       <span className="mb-2 block text-sm text-white/72">Service</span>
                       <select id="field-service" aria-required="true" aria-invalid={!!errors.service}
