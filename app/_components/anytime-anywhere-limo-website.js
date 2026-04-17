@@ -115,6 +115,12 @@ function AddressAutocompleteField({
             void loadSuggestions(value);
           }}
           onBlur={() => {
+            // Immediately snap the viewport back to x=0 so the browser's
+            // cursor-tracking pan (triggered by long address text) is cleared
+            // before the user notices any layout shift.
+            if (typeof window !== "undefined" && window.scrollX !== 0) {
+              window.scrollTo({ left: 0, behavior: "instant" });
+            }
             blurTimeoutRef.current = setTimeout(async () => {
               setIsFocused(false);
               if (value.trim().length >= 3) {
@@ -130,6 +136,10 @@ function AddressAutocompleteField({
                 } catch {
                   // silent
                 }
+              }
+              // Second reset after async work, in case the browser re-panned.
+              if (typeof window !== "undefined" && window.scrollX !== 0) {
+                window.scrollTo({ left: 0, behavior: "instant" });
               }
             }, 140);
           }}
@@ -168,6 +178,11 @@ function AddressAutocompleteField({
                       }
                       setSuggestions([]);
                       setIsFocused(false);
+                      // Snap viewport back immediately when a suggestion is tapped —
+                      // this is the earliest possible moment after address selection.
+                      if (typeof window !== "undefined" && window.scrollX !== 0) {
+                        window.scrollTo({ left: 0, behavior: "instant" });
+                      }
                     }}
                     className="block w-full border-b border-white/6 px-4 py-3 text-left last:border-b-0 hover:bg-white/6"
                   >
