@@ -112,7 +112,7 @@ export default async function Home() {
             <div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,rgba(200,168,112,0.04),transparent_65%)]" />
           </div>
 
-          <section className="relative z-10 px-4 pb-8 pt-6 sm:px-5 md:pb-12 md:pt-10">
+          <section className="relative z-10 px-4 pb-8 pt-6 sm:px-5 md:pb-12 md:pt-10 [overflow-x:clip]">
             <div className="limo-container grid grid-cols-1 gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-stretch">
 
               {/* ── Left column: hero — pure server HTML ── */}

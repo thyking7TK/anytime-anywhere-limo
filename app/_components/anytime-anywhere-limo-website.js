@@ -259,6 +259,11 @@ export default function AnytimeAnywhereLimoWebsite({
             estimatedTripHours: autoHours,
           };
         });
+        // Reset any horizontal viewport pan that mobile browsers may have
+        // applied while the user was typing in the address fields.
+        if (typeof window !== "undefined" && window.scrollX !== 0) {
+          window.scrollTo({ left: 0, behavior: "instant" });
+        }
       } catch {
         setDistanceError("Could not calculate route. Please try again or contact us directly.");
       } finally {
@@ -972,9 +977,8 @@ export default function AnytimeAnywhereLimoWebsite({
                             </span>
                           </span>
                           <input
-                            type="number"
-                            min="0"
-                            step="0.5"
+                            type="text"
+                            inputMode="decimal"
                             value={form.estimatedTripHours}
                             readOnly
                             className={`${fieldClassName} cursor-default opacity-70`}
@@ -994,9 +998,8 @@ export default function AnytimeAnywhereLimoWebsite({
                             </span>
                           </span>
                           <input
-                            type="number"
-                            min="0"
-                            step="1"
+                            type="text"
+                            inputMode="decimal"
                             value={form.estimatedTripMiles}
                             readOnly
                             className={`${fieldClassName} cursor-default opacity-70`}
