@@ -45,7 +45,7 @@ const BookingForm = dynamic(
           </div>
 
           {/* Form field placeholders */}
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="space-y-2">
                 <div className="h-3 w-16 rounded-full bg-white/6" />

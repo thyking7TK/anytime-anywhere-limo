@@ -113,7 +113,7 @@ export default async function Home() {
           </div>
 
           <section className="relative z-10 px-4 pb-8 pt-6 sm:px-5 md:pb-12 md:pt-10">
-            <div className="limo-container grid gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-stretch">
+            <div className="limo-container grid grid-cols-1 gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-stretch">
 
               {/* ── Left column: hero — pure server HTML ── */}
               <div className="py-4 md:py-10">

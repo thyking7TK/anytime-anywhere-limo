@@ -613,7 +613,7 @@ export default function AnytimeAnywhereLimoWebsite({
 
               {!submittedBooking ? (
                 <form onSubmit={handleSubmit} className="relative z-10 mt-6" noValidate aria-label="Booking request form">
-                  <div className="grid gap-4 md:grid-cols-2 min-w-0">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 min-w-0">
                     <label className="block" htmlFor="field-service">
                       <span className="mb-2 block text-sm text-white/72">Service</span>
                       <select id="field-service" aria-required="true" aria-invalid={!!errors.service}
