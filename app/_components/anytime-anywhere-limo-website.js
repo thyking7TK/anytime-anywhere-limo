@@ -965,9 +965,9 @@ export default function AnytimeAnywhereLimoWebsite({
                     {form.service === "custom" ? (
                       <>
                         <label className="block">
-                          <span className="mb-2 flex items-center gap-2 text-sm text-white/72">
-                            Estimated Trip Hours
-                            <span className="rounded-full bg-white/8 px-2 py-0.5 text-[0.65rem] uppercase tracking-widest text-[var(--accent)]">
+                          <span className="mb-1 block text-sm text-white/72">Estimated Trip Hours</span>
+                          <span className="mb-2 block">
+                            <span className="rounded-full bg-white/8 px-2 py-0.5 text-[0.62rem] uppercase tracking-wider text-[var(--accent)]">
                               {isCalculatingDistance ? "Calculating…" : "Auto-calculated"}
                             </span>
                           </span>
@@ -987,9 +987,9 @@ export default function AnytimeAnywhereLimoWebsite({
                         </label>
 
                         <label className="block">
-                          <span className="mb-2 flex items-center gap-2 text-sm text-white/72">
-                            Estimated Trip Miles
-                            <span className="rounded-full bg-white/8 px-2 py-0.5 text-[0.65rem] uppercase tracking-widest text-[var(--accent)]">
+                          <span className="mb-1 block text-sm text-white/72">Estimated Trip Miles</span>
+                          <span className="mb-2 block">
+                            <span className="rounded-full bg-white/8 px-2 py-0.5 text-[0.62rem] uppercase tracking-wider text-[var(--accent)]">
                               {isCalculatingDistance ? "Calculating…" : "Auto-calculated"}
                             </span>
                           </span>
