@@ -45,6 +45,7 @@ function AddressAutocompleteField({
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const blurTimeoutRef = useRef(null);
+  const inputRef = useRef(null);
 
   function cleanupBlurTimeout() {
     if (blurTimeoutRef.current) {
@@ -102,6 +103,7 @@ function AddressAutocompleteField({
       <span className="mb-2 block text-sm text-white/72">{label}</span>
       <div className="relative min-w-0">
         <input
+          ref={inputRef}
           type="text"
           value={value}
           onChange={(event) => {
@@ -178,8 +180,17 @@ function AddressAutocompleteField({
                       }
                       setSuggestions([]);
                       setIsFocused(false);
-                      // Snap viewport back immediately when a suggestion is tapped —
-                      // this is the earliest possible moment after address selection.
+                      // Explicitly blur the input. Because onMouseDown calls
+                      // preventDefault(), the input keeps focus after tapping a
+                      // suggestion — the cursor sits at the end of the long address
+                      // text and mobile browsers pan the viewport to show it.
+                      // Blurring removes focus so the browser stops cursor-tracking
+                      // and resets the pan immediately.
+                      if (inputRef.current) {
+                        // Move cursor to start first so any pre-blur pan is minimal.
+                        try { inputRef.current.setSelectionRange(0, 0); } catch (_) {}
+                        inputRef.current.blur();
+                      }
                       if (typeof window !== "undefined" && window.scrollX !== 0) {
                         window.scrollTo({ left: 0, behavior: "instant" });
                       }
