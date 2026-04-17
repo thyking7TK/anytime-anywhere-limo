@@ -779,7 +779,6 @@ export default function AnytimeAnywhereLimoWebsite({
                               <span className="font-semibold text-white">{distanceInfo.distanceMiles} miles</span>
                               <span className="mx-2 text-white/24">/</span>
                               <span className="font-semibold text-white">~{distanceInfo.durationMinutes} min</span>
-                              <span className="ml-2 text-white/40">estimated drive</span>
                             </p>
                           </>
                         ) : null}
