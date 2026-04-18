@@ -40,7 +40,9 @@ export async function GET(request) {
     url.searchParams.set("units",        "imperial");
     url.searchParams.set("key",          GOOGLE_KEY);
 
-    const response = await fetch(url.toString());
+    const response = await fetch(url.toString(), {
+      headers: { "Referer": "https://autoviseblackcar.com" },
+    });
     if (!response.ok) {
       return NextResponse.json(
         { message: "Distance calculation temporarily unavailable." },

@@ -23,6 +23,7 @@ async function fetchCoordinates(placeId) {
         headers: {
           "X-Goog-Api-Key": GOOGLE_KEY,
           "X-Goog-FieldMask": "id,location",
+          "Referer": "https://autoviseblackcar.com",
         },
       },
     );
@@ -67,6 +68,7 @@ export async function GET(request) {
         headers: {
           "Content-Type": "application/json",
           "X-Goog-Api-Key": GOOGLE_KEY,
+          "Referer": "https://autoviseblackcar.com",
         },
         body: JSON.stringify({
           input: query,
