@@ -74,17 +74,6 @@ export async function GET(request) {
           input: query,
           languageCode: "en",
           regionCode: "US",
-          includedPrimaryTypes: [
-            "airport",
-            "lodging",
-            "street_address",
-            "route",
-            "locality",
-            "sublocality",
-            "premise",
-            "point_of_interest",
-            "establishment",
-          ],
         }),
       },
     );
