@@ -33,16 +33,38 @@ export async function GET(request) {
   }
 
   try {
-    const url = new URL("https://maps.googleapis.com/maps/api/distancematrix/json");
-    url.searchParams.set("origins",      `${pickupLat},${pickupLon}`);
-    url.searchParams.set("destinations", `${dropoffLat},${dropoffLon}`);
-    url.searchParams.set("mode",         "driving");
-    url.searchParams.set("units",        "imperial");
-    url.searchParams.set("key",          GOOGLE_KEY);
+    const response = await fetch(
+      "https://routes.googleapis.com/directions/v2:computeRoutes",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": GOOGLE_KEY,
+          "X-Goog-FieldMask": "routes.duration,routes.distanceMeters",
+          "Referer": "https://autoviseblackcar.com",
+        },
+        body: JSON.stringify({
+          origin: {
+            location: {
+              latLng: {
+                latitude: parseFloat(pickupLat),
+                longitude: parseFloat(pickupLon),
+              },
+            },
+          },
+          destination: {
+            location: {
+              latLng: {
+                latitude: parseFloat(dropoffLat),
+                longitude: parseFloat(dropoffLon),
+              },
+            },
+          },
+          travelMode: "DRIVE",
+        }),
+      },
+    );
 
-    const response = await fetch(url.toString(), {
-      headers: { "Referer": "https://autoviseblackcar.com" },
-    });
     if (!response.ok) {
       return NextResponse.json(
         { message: "Distance calculation temporarily unavailable." },
@@ -51,26 +73,20 @@ export async function GET(request) {
     }
 
     const data = await response.json();
+    const route = data.routes?.[0];
 
-    if (data.status !== "OK") {
-      return NextResponse.json(
-        { message: "Distance calculation failed: " + data.status },
-        { status: 502 },
-      );
-    }
-
-    const element = data.rows?.[0]?.elements?.[0];
-    if (!element || element.status !== "OK") {
+    if (!route) {
       return NextResponse.json(
         { message: "No drivable route found between these locations." },
         { status: 404 },
       );
     }
 
-    // distance.value = metres, duration.value = seconds
-    const distanceMiles  = element.distance.value / 1609.344;
-    const durationHours  = element.duration.value / 3600;
-    const durationMinutes = Math.round(element.duration.value / 60);
+    // distanceMeters is a number; duration comes back as e.g. "1061s"
+    const distanceMiles  = route.distanceMeters / 1609.344;
+    const durationSeconds = parseInt((route.duration ?? "0s").replace("s", ""), 10);
+    const durationHours  = durationSeconds / 3600;
+    const durationMinutes = Math.round(durationSeconds / 60);
 
     const result = {
       distanceMiles:  Math.round(distanceMiles  * 10) / 10,
