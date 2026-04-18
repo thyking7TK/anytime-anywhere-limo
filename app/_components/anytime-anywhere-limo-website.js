@@ -32,6 +32,20 @@ function formatQuoteModeLabel(estimate) {
   return estimate?.quoteMode === "request" ? "Request quote" : "Instant estimate";
 }
 
+// ─── tiny display helpers ──────────────────────────────────────────────────
+function fmtDate(d) {
+  if (!d) return "";
+  const [, m, day] = d.split("-");
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${months[parseInt(m, 10) - 1]} ${parseInt(day, 10)}`;
+}
+function fmtTime(t) {
+  if (!t) return "";
+  const [h, m] = t.split(":");
+  const hr = parseInt(h, 10);
+  return `${hr % 12 || 12}:${m}${hr >= 12 ? "pm" : "am"}`;
+}
+
 function AddressAutocompleteField({
   label,
   field,
@@ -117,9 +131,6 @@ function AddressAutocompleteField({
             void loadSuggestions(value);
           }}
           onBlur={() => {
-            // Immediately snap the viewport back to x=0 so the browser's
-            // cursor-tracking pan (triggered by long address text) is cleared
-            // before the user notices any layout shift.
             if (typeof window !== "undefined" && window.scrollX !== 0) {
               window.scrollTo({ left: 0, behavior: "instant" });
             }
@@ -139,7 +150,6 @@ function AddressAutocompleteField({
                   // silent
                 }
               }
-              // Second reset after async work, in case the browser re-panned.
               if (typeof window !== "undefined" && window.scrollX !== 0) {
                 window.scrollTo({ left: 0, behavior: "instant" });
               }
@@ -180,14 +190,7 @@ function AddressAutocompleteField({
                       }
                       setSuggestions([]);
                       setIsFocused(false);
-                      // Explicitly blur the input. Because onMouseDown calls
-                      // preventDefault(), the input keeps focus after tapping a
-                      // suggestion — the cursor sits at the end of the long address
-                      // text and mobile browsers pan the viewport to show it.
-                      // Blurring removes focus so the browser stops cursor-tracking
-                      // and resets the pan immediately.
                       if (inputRef.current) {
-                        // Move cursor to start first so any pre-blur pan is minimal.
                         try { inputRef.current.setSelectionRange(0, 0); } catch (_) {}
                         inputRef.current.blur();
                       }
@@ -285,13 +288,11 @@ export default function AnytimeAnywhereLimoWebsite({
             estimatedTripHours: autoHours,
           };
         });
-        // Reset any horizontal viewport pan that mobile browsers may have
-        // applied while the user was typing in the address fields.
         if (typeof window !== "undefined" && window.scrollX !== 0) {
           window.scrollTo({ left: 0, behavior: "instant" });
         }
       } catch {
-        setDistanceError("Could not calculate route. Please try again or contact us directly.");
+        setDistanceError("Could not calculate route. Please enter addresses manually or contact us.");
       } finally {
         setIsCalculatingDistance(false);
       }
@@ -300,8 +301,10 @@ export default function AnytimeAnywhereLimoWebsite({
     return () => clearTimeout(timer);
   }, [pickupCoords, dropoffCoords]);
 
+  // ─── form state — service defaults to "custom" ──────────────────────────
   const [form, setForm] = useState(() => ({
     ...defaultForm,
+    service: "custom",
     vehicle: vehicles[0]?.slug ?? "",
     airportRouteId: airportRouteEntries[0]?.id ?? "",
   }));
@@ -311,6 +314,9 @@ export default function AnytimeAnywhereLimoWebsite({
   const [paymentState, setPaymentState] = useState(null);
   const [checkingPaymentStatus, setCheckingPaymentStatus] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ─── multi-step accordion state ─────────────────────────────────────────
+  const [step, setStep] = useState(1);
 
   const estimate = calculateEstimate(form, catalog);
   const selectedVehicle = getVehicleBySlug(form.vehicle, catalog) ?? vehicles[0] ?? null;
@@ -327,6 +333,7 @@ export default function AnytimeAnywhereLimoWebsite({
     { length: passengerLimit },
     (_, index) => String(index + 1),
   );
+  const luggageOptions = Array.from({ length: 13 }, (_, i) => String(i));
   const quoteDisplayAmount = estimate.total > 0
     ? formatCurrency(estimate.total)
     : "Request Quote";
@@ -480,12 +487,35 @@ export default function AnytimeAnywhereLimoWebsite({
     setPaymentState(null);
     setErrors({});
     setSubmitError("");
+    setStep(1);
     setForm({
       ...defaultForm,
+      service: "custom",
       vehicle: vehicles[0]?.slug ?? "",
       airportRouteId: airportRouteEntries[0]?.id ?? "",
     });
     scrollToBooking();
+  }
+
+  // ─── partial step validation ─────────────────────────────────────────────
+  function tryAdvance(fromStep) {
+    const errs = {};
+    if (fromStep === 1) {
+      if (!form.pickup.trim()) errs.pickup = "Pickup location is required.";
+      if (!form.dropoff.trim()) errs.dropoff = "Drop-off location is required.";
+      if (!form.date) errs.date = "Date is required.";
+      if (!form.time) errs.time = "Time is required.";
+    }
+    if (fromStep === 3) {
+      if (!form.fullName.trim()) errs.fullName = "Full name is required.";
+      if (!form.phone.trim()) errs.phone = "Phone number is required.";
+      if (!form.email.trim()) errs.email = "Email is required.";
+    }
+    if (Object.keys(errs).length > 0) {
+      setErrors((prev) => ({ ...prev, ...errs }));
+      return;
+    }
+    setStep(fromStep + 1);
   }
 
   async function handleSubmit(event) {
@@ -528,6 +558,7 @@ export default function AnytimeAnywhereLimoWebsite({
       setSubmitError("");
       setForm({
         ...defaultForm,
+        service: "custom",
         vehicle: vehicles[0]?.slug ?? "",
         airportRouteId: airportRouteEntries[0]?.id ?? "",
       });
@@ -540,210 +571,255 @@ export default function AnytimeAnywhereLimoWebsite({
     }
   }
 
+  // ─── step badge ──────────────────────────────────────────────────────────
+  function StepBadge({ n, done }) {
+    if (done) {
+      return (
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[0.6rem] font-bold text-[#0a0a0e]">
+          ✓
+        </span>
+      );
+    }
+    return (
+      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+        step === n
+          ? "border-[var(--accent)] text-[var(--accent)]"
+          : "border-white/20 text-white/30"
+      }`}>
+        {n}
+      </span>
+    );
+  }
+
+  // ─── continue button ─────────────────────────────────────────────────────
+  function ContinueBtn({ onClick, label = "Continue" }) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="lux-button mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e] shadow-[0_12px_30px_rgba(210,176,107,0.18)] hover:bg-[var(--accent-dark)]"
+      >
+        {label}
+      </button>
+    );
+  }
+
   return (
     <aside
       id="booking"
       className="booking-panel glass-panel min-w-0 overflow-hidden rounded-[1.4rem] p-6 md:p-8"
       aria-label={heroContent.bookingEyebrow}
     >
-              <div className="relative z-10 flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <p className="lux-section-label">{heroContent.bookingEyebrow}</p>
-                  <h2 className="mt-3 font-display text-[1.6rem] leading-none text-white md:text-[2.4rem]">
-                    {heroContent.bookingTitle}
-                  </h2>
-                  <p className="mt-3 max-w-[480px] text-sm leading-7 text-white/64">
-                    {heroContent.bookingDescription}
-                  </p>
+      {/* ── Panel header ─────────────────────────────────────────────── */}
+      <div className="relative z-10 flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="lux-section-label">{heroContent.bookingEyebrow}</p>
+          <h2 className="mt-3 font-display text-[1.6rem] leading-none text-white md:text-[2.4rem]">
+            {heroContent.bookingTitle}
+          </h2>
+        </div>
+      </div>
+
+      {/* ── Success state ────────────────────────────────────────────── */}
+      {submittedBooking ? (
+        <div className="relative z-10 mt-6 rounded-[1.2rem] border border-[var(--line-strong)] bg-[linear-gradient(180deg,rgba(200,168,112,0.12),rgba(255,255,255,0.02))] p-5">
+          <p className="text-xs uppercase tracking-[0.3em] text-[var(--accent-strong)]">
+            {paymentState?.status === "paid"
+              ? "Payment received"
+              : bookingUi.successLabel}
+          </p>
+          <h3 className="mt-3 font-display text-[2rem] text-white">
+            Reference {submittedBooking.reference}
+          </h3>
+          <p className="mt-3 text-sm leading-7 text-white/72">
+            {paymentState?.status === "paid"
+              ? `We've received payment for your ${submittedBooking.service.toLowerCase()} request. Follow-up can go to ${submittedBooking.email}.`
+              : `We saved your request for ${submittedBooking.service.toLowerCase()}. Follow-up can go to ${submittedBooking.email}.`}
+          </p>
+          <div className="mt-5 grid gap-3 text-sm text-white/68 sm:grid-cols-2">
+            <p>Pickup: {submittedBooking.pickup}</p>
+            <p>Drop-off: {submittedBooking.dropoff}</p>
+            <p>When: {submittedBooking.when}</p>
+            {submittedBooking.returnWhen ? (
+              <p>Return: {submittedBooking.returnWhen}</p>
+            ) : null}
+            <p>
+              {submittedBooking.estimate.quoteMode === "request"
+                ? "Quote mode: Request quote"
+                : `Estimated total: ${formatCurrency(submittedBooking.estimate.total)}`}
+            </p>
+            {paymentState?.amount ? (
+              <p>
+                {paymentState.status === "paid"
+                  ? `Payment received: ${formatCurrency(paymentState.amount)}`
+                  : `Secure payment due: ${formatCurrency(paymentState.amount)}`}
+              </p>
+            ) : null}
+          </div>
+
+          {checkingPaymentStatus ? (
+            <div className="mt-5 rounded-[1rem] border border-white/10 bg-white/4 px-4 py-3 text-sm text-white/68">
+              Confirming payment status...
+            </div>
+          ) : null}
+
+          {paymentState?.message ? (
+            <div className="mt-5 rounded-[1rem] border border-white/10 bg-white/4 px-4 py-3 text-sm text-white/68">
+              {paymentState.message}
+            </div>
+          ) : null}
+
+          {paymentState?.enabled && paymentState.status === "awaiting_payment" ? (
+            <BookingPaymentCheckout
+              key={submittedBooking.reference}
+              bookingReference={submittedBooking.reference}
+              amount={paymentState.amount}
+            />
+          ) : null}
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={resetBookingExperience}
+              className="lux-button inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 bg-white/4 px-5 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/7"
+            >
+              Request Another Ride
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── Error banner ─────────────────────────────────────────────── */}
+      {submitError && !submittedBooking ? (
+        <div className="relative z-10 mt-6 rounded-[0.9rem] border border-amber-200/20 bg-amber-200/8 px-4 py-3 text-sm text-amber-100/90">
+          {submitError}
+        </div>
+      ) : null}
+
+      {vehicleAvailabilityMessage && !submittedBooking ? (
+        <div className="relative z-10 mt-6 rounded-[1.4rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/72">
+          {vehicleAvailabilityMessage}
+        </div>
+      ) : null}
+
+      {/* ── Multi-step accordion form ─────────────────────────────────── */}
+      {!submittedBooking ? (
+        <form
+          onSubmit={handleSubmit}
+          className="relative z-10 mt-6 flex flex-col gap-3"
+          noValidate
+          aria-label="Booking request form"
+        >
+
+          {/* ══════════════════════════════════════════════════════════
+              STEP 1 — Trip Details
+          ══════════════════════════════════════════════════════════ */}
+          <div className={`overflow-hidden rounded-[1.2rem] border transition-colors ${
+            step === 1 ? "border-white/14 bg-white/4" : "border-white/8 bg-white/2"
+          }`}>
+            {/* header */}
+            {step > 1 ? (
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="flex w-full items-center justify-between px-5 py-4 text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <StepBadge n={1} done />
+                  <span className="text-sm font-medium text-white">Trip Details</span>
                 </div>
-                <div className="w-fit self-start rounded-full border border-white/10 bg-white/4 px-4 py-3 text-[0.76rem] uppercase tracking-[0.26em] text-[var(--accent)] shadow-[0_14px_36px_rgba(210,176,107,0.1)]">
-                  {heroContent.bookingPill}
-                </div>
+                <span className="max-w-[55%] truncate text-right text-xs text-white/40">
+                  {[selectedService?.title, fmtDate(form.date), fmtTime(form.time)].filter(Boolean).join(" · ")}
+                </span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-3 border-b border-white/8 px-5 py-4">
+                <StepBadge n={1} done={false} />
+                <span className="text-sm font-semibold text-white">Trip Details</span>
               </div>
+            )}
 
-              {submittedBooking ? (
-                <div className="relative z-10 mt-6 rounded-[1.2rem] border border-[var(--line-strong)] bg-[linear-gradient(180deg,rgba(200,168,112,0.12),rgba(255,255,255,0.02))] p-5">
-                  <p className="text-xs uppercase tracking-[0.3em] text-[var(--accent-strong)]">
-                    {paymentState?.status === "paid"
-                      ? "Payment received"
-                      : bookingUi.successLabel}
-                  </p>
-                  <h3 className="mt-3 font-display text-[2rem] text-white">
-                    Reference {submittedBooking.reference}
-                  </h3>
-                  <p className="mt-3 text-sm leading-7 text-white/72">
-                    {paymentState?.status === "paid"
-                      ? `We've received payment for your ${submittedBooking.service.toLowerCase()} request. Follow-up can go to ${submittedBooking.email}.`
-                      : `We saved your request for ${submittedBooking.service.toLowerCase()}. Follow-up can go to ${submittedBooking.email}.`}
-                  </p>
-                  <div className="mt-5 grid gap-3 text-sm text-white/68 sm:grid-cols-2">
-                    <p>Pickup: {submittedBooking.pickup}</p>
-                    <p>Drop-off: {submittedBooking.dropoff}</p>
-                    <p>When: {submittedBooking.when}</p>
-                    {submittedBooking.returnWhen ? (
-                      <p>Return: {submittedBooking.returnWhen}</p>
-                    ) : null}
-                    <p>
-                      {submittedBooking.estimate.quoteMode === "request"
-                        ? "Quote mode: Request quote"
-                        : `Estimated total: ${formatCurrency(submittedBooking.estimate.total)}`}
-                    </p>
-                    {paymentState?.amount ? (
-                      <p>
-                        {paymentState.status === "paid"
-                          ? `Payment received: ${formatCurrency(paymentState.amount)}`
-                          : `Secure payment due: ${formatCurrency(paymentState.amount)}`}
-                      </p>
-                    ) : null}
-                  </div>
+            {/* body */}
+            {step === 1 ? (
+              <div className="px-5 pb-5 pt-4">
+                <div className="grid grid-cols-1 gap-4 min-w-0">
 
-                  {checkingPaymentStatus ? (
-                    <div className="mt-5 rounded-[1rem] border border-white/10 bg-white/4 px-4 py-3 text-sm text-white/68">
-                      Confirming payment status...
-                    </div>
-                  ) : null}
-
-                  {paymentState?.message ? (
-                    <div className="mt-5 rounded-[1rem] border border-white/10 bg-white/4 px-4 py-3 text-sm text-white/68">
-                      {paymentState.message}
-                    </div>
-                  ) : null}
-
-                  {paymentState?.enabled &&
-                  paymentState.status === "awaiting_payment" ? (
-                    <BookingPaymentCheckout
-                      key={submittedBooking.reference}
-                      bookingReference={submittedBooking.reference}
-                      amount={paymentState.amount}
-                    />
-                  ) : null}
-
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={resetBookingExperience}
-                      className="lux-button inline-flex min-h-11 items-center justify-center rounded-full border border-white/12 bg-white/4 px-5 text-sm font-semibold text-white hover:border-[var(--accent)] hover:bg-white/7"
+                  {/* Service */}
+                  <label className="block" htmlFor="field-service">
+                    <span className="mb-2 block text-sm text-white/72">Service</span>
+                    <select
+                      id="field-service"
+                      aria-required="true"
+                      aria-invalid={!!errors.service}
+                      value={form.service}
+                      onChange={(event) => updateServiceType(event.target.value)}
+                      className={fieldClassName}
                     >
-                      Request Another Ride
-                    </button>
+                      {bookingServiceEntries.map((service) => (
+                        <option key={service.id} value={service.id} className="bg-[#101319]">
+                          {service.title}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.service ? (
+                      <span className="mt-2 block text-sm text-amber-200">{errors.service}</span>
+                    ) : null}
+                  </label>
+
+                  {/* Pickup */}
+                  <AddressAutocompleteField
+                    label="Pickup Location"
+                    field="pickup"
+                    value={form.pickup}
+                    onChange={updateField}
+                    onCoordinates={setPickupCoords}
+                    placeholder="Airport, hotel, office, or address"
+                    error={errors.pickup}
+                  />
+
+                  {/* Drop-off */}
+                  <AddressAutocompleteField
+                    label="Drop-off Location"
+                    field="dropoff"
+                    value={form.dropoff}
+                    onChange={updateField}
+                    onCoordinates={setDropoffCoords}
+                    placeholder="Destination or event venue"
+                    error={errors.dropoff}
+                  />
+
+                  {/* Date + Time */}
+                  <div className="grid grid-cols-2 gap-4 min-w-0">
+                    <label className="block min-w-0">
+                      <span className="mb-2 block text-sm text-white/72">Date</span>
+                      <input
+                        type="date"
+                        value={form.date}
+                        onChange={(event) => updateField("date", event.target.value)}
+                        className={fieldClassName}
+                      />
+                      {errors.date ? (
+                        <span className="mt-2 block text-sm text-amber-200">{errors.date}</span>
+                      ) : null}
+                    </label>
+
+                    <label className="block min-w-0">
+                      <span className="mb-2 block text-sm text-white/72">Time</span>
+                      <input
+                        type="time"
+                        value={form.time}
+                        onChange={(event) => updateField("time", event.target.value)}
+                        className={fieldClassName}
+                      />
+                      {errors.time ? (
+                        <span className="mt-2 block text-sm text-amber-200">{errors.time}</span>
+                      ) : null}
+                    </label>
                   </div>
-                </div>
-              ) : null}
 
-              {submitError ? (
-                <div className="relative z-10 mt-6 rounded-[0.9rem] border border-amber-200/20 bg-amber-200/8 px-4 py-3 text-sm text-amber-100/90">
-                  {submitError}
-                </div>
-              ) : null}
-
-              {vehicleAvailabilityMessage ? (
-                <div className="relative z-10 mt-6 rounded-[1.4rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/72">
-                  {vehicleAvailabilityMessage}
-                </div>
-              ) : null}
-
-              {!submittedBooking ? (
-                <form onSubmit={handleSubmit} className="relative z-10 mt-6" noValidate aria-label="Booking request form">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 min-w-0">
-                    <label className="block" htmlFor="field-service">
-                      <span className="mb-2 block text-sm text-white/72">Service</span>
-                      <select id="field-service" aria-required="true" aria-invalid={!!errors.service}
-                        value={form.service}
-                        onChange={(event) => updateServiceType(event.target.value)}
-                        className={fieldClassName}
-                      >
-                        {bookingServiceEntries.map((service) => (
-                          <option key={service.id} value={service.id} className="bg-[#101319]">
-                            {service.title}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.service ? (
-                        <span className="mt-2 block text-sm text-amber-200">
-                          {errors.service}
-                        </span>
-                      ) : null}
-                    </label>
-
-                    <label className="block" htmlFor="field-vehicle">
-                      <span className="mb-2 block text-sm text-white/72">Vehicle</span>
-                      <select
-                        id="field-vehicle"
-                        aria-required="true"
-                        aria-invalid={!!errors.vehicle}
-                        value={form.vehicle}
-                        onChange={(event) => updateVehicle(event.target.value)}
-                        disabled={!hasVehicles}
-                        className={fieldClassName}
-                      >
-                        {hasVehicles ? (
-                          vehicles.map((vehicle) => (
-                            <option key={vehicle.slug} value={vehicle.slug} className="bg-[#101319]">
-                              {vehicle.name}
-                            </option>
-                          ))
-                        ) : (
-                          <option value="" className="bg-[#101319]">
-                            No vehicles available
-                          </option>
-                        )}
-                      </select>
-                      {errors.vehicle ? (
-                        <span className="mt-2 block text-sm text-amber-200">
-                          {errors.vehicle}
-                        </span>
-                      ) : null}
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-2 block text-sm text-white/72">Full Name</span>
-                      <input
-                        type="text"
-                        value={form.fullName}
-                        onChange={(event) => updateField("fullName", event.target.value)}
-                        placeholder="Passenger or organizer name"
-                        className={fieldClassName}
-                      />
-                      {errors.fullName ? (
-                        <span className="mt-2 block text-sm text-amber-200">
-                          {errors.fullName}
-                        </span>
-                      ) : null}
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-2 block text-sm text-white/72">Phone</span>
-                      <input
-                        type="tel"
-                        value={form.phone}
-                        onChange={(event) => updateField("phone", event.target.value)}
-                        placeholder="(555) 123-4567"
-                        className={fieldClassName}
-                      />
-                      {errors.phone ? (
-                        <span className="mt-2 block text-sm text-amber-200">
-                          {errors.phone}
-                        </span>
-                      ) : null}
-                    </label>
-
-                    <label className="block md:col-span-1">
-                      <span className="mb-2 block text-sm text-white/72">Email</span>
-                      <input
-                        type="email"
-                        value={form.email}
-                        onChange={(event) => updateField("email", event.target.value)}
-                        placeholder="name@example.com"
-                        className={fieldClassName}
-                      />
-                      {errors.email ? (
-                        <span className="mt-2 block text-sm text-amber-200">
-                          {errors.email}
-                        </span>
-                      ) : null}
-                    </label>
-
-                    <label className="block md:col-span-1">
+                  {/* Passengers + Luggage */}
+                  <div className="grid grid-cols-2 gap-4 min-w-0">
+                    <label className="block min-w-0">
                       <span className="mb-2 block text-sm text-white/72">Passengers</span>
                       <select
                         value={form.passengers}
@@ -757,408 +833,345 @@ export default function AnytimeAnywhereLimoWebsite({
                         ))}
                       </select>
                       {errors.passengers ? (
-                        <span className="mt-2 block text-sm text-amber-200">
-                          {errors.passengers}
-                        </span>
+                        <span className="mt-2 block text-sm text-amber-200">{errors.passengers}</span>
                       ) : null}
                     </label>
 
-                    <label className="block md:col-span-1">
-                      <span className="mb-2 block text-sm text-white/72">Bags</span>
-                      <input
-                        type="number"
-                        min="0"
+                    <label className="block min-w-0">
+                      <span className="mb-2 block text-sm text-white/72">Luggage</span>
+                      <select
                         value={form.bags}
                         onChange={(event) => updateField("bags", event.target.value)}
                         className={fieldClassName}
-                      />
+                      >
+                        {luggageOptions.map((count) => (
+                          <option key={count} value={count} className="bg-[#101319]">
+                            {count === "0" ? "0 bags" : count === "1" ? "1 bag" : `${count} bags`}
+                          </option>
+                        ))}
+                      </select>
                       {errors.bags ? (
-                        <span className="mt-2 block text-sm text-amber-200">
-                          {errors.bags}
-                        </span>
+                        <span className="mt-2 block text-sm text-amber-200">{errors.bags}</span>
                       ) : null}
                     </label>
+                  </div>
 
-                    <AddressAutocompleteField
-                      label="Pickup Location"
-                      field="pickup"
-                      value={form.pickup}
-                      onChange={updateField}
-                      onCoordinates={setPickupCoords}
-                      placeholder="Airport, hotel, office, or address"
-                      error={errors.pickup}
-                    />
+                  {/* Distance calculation status */}
+                  {isCalculatingDistance ? (
+                    <p className="text-xs text-white/40">Calculating route distance…</p>
+                  ) : distanceError ? (
+                    <p className="rounded-lg border border-amber-400/20 bg-amber-400/8 px-4 py-3 text-sm text-amber-200">
+                      {distanceError}
+                    </p>
+                  ) : distanceInfo && form.service === "custom" ? (
+                    <p className="text-xs text-white/40">
+                      Route: {distanceInfo.distanceMiles} mi · {distanceInfo.durationMinutes} min drive
+                    </p>
+                  ) : null}
 
-                    <AddressAutocompleteField
-                      label="Drop-off Location"
-                      field="dropoff"
-                      value={form.dropoff}
-                      onChange={updateField}
-                      onCoordinates={setDropoffCoords}
-                      placeholder="Destination or event venue"
-                      error={errors.dropoff}
-                    />
+                </div>
 
-                    <label className="block">
-                      <span className="mb-2 block text-sm text-white/72">Date</span>
-                      <input
-                        type="date"
-                        value={form.date}
-                        onChange={(event) => updateField("date", event.target.value)}
-                        className={fieldClassName}
-                      />
-                      {errors.date ? (
-                        <span className="mt-2 block text-sm text-amber-200">
-                          {errors.date}
-                        </span>
-                      ) : null}
-                    </label>
+                <button
+                  type="button"
+                  onClick={() => tryAdvance(1)}
+                  disabled={isCalculatingDistance}
+                  className="lux-button mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e] shadow-[0_12px_30px_rgba(210,176,107,0.18)] hover:bg-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isCalculatingDistance ? "Calculating route…" : "Continue to Vehicle →"}
+                </button>
+              </div>
+            ) : null}
+          </div>
 
-                    <label className="block">
-                      <span className="mb-2 block text-sm text-white/72">Time</span>
-                      <input
-                        type="time"
-                        value={form.time}
-                        onChange={(event) => updateField("time", event.target.value)}
-                        className={fieldClassName}
-                      />
-                      {errors.time ? (
-                        <span className="mt-2 block text-sm text-amber-200">
-                          {errors.time}
-                        </span>
-                      ) : null}
-                    </label>
+          {/* ══════════════════════════════════════════════════════════
+              STEP 2 — Vehicle
+          ══════════════════════════════════════════════════════════ */}
+          <div className={`overflow-hidden rounded-[1.2rem] border transition-colors ${
+            step === 2 ? "border-white/14 bg-white/4" : "border-white/8 bg-white/2"
+          }`}>
+            {/* header */}
+            {step > 2 ? (
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="flex w-full items-center justify-between px-5 py-4 text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <StepBadge n={2} done />
+                  <span className="text-sm font-medium text-white">Vehicle</span>
+                </div>
+                <span className="text-xs text-white/40">{selectedVehicle?.name ?? ""}</span>
+              </button>
+            ) : (
+              <div className={`flex items-center gap-3 px-5 py-4 ${step < 2 ? "opacity-35" : "border-b border-white/8"}`}>
+                <StepBadge n={2} done={false} />
+                <span className={`text-sm font-semibold ${step === 2 ? "text-white" : "text-white/50"}`}>Vehicle</span>
+              </div>
+            )}
 
-                    {form.service === "hourly" ? (
-                      <>
-                        <label className="block">
-                          <span className="mb-2 block text-sm text-white/72">Requested Hours</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={form.requestedHours}
-                            onChange={(event) => updateField("requestedHours", event.target.value)}
-                            className={fieldClassName}
-                          />
-                          {errors.requestedHours ? (
-                            <span className="mt-2 block text-sm text-amber-200">
-                              {errors.requestedHours}
-                            </span>
-                          ) : (
-                            <span className="mt-2 block text-xs text-white/42">
-                              Minimum billed time is 3 hours.
-                            </span>
-                          )}
-                        </label>
-
-                        <label className="block">
-                          <span className="mb-2 block text-sm text-white/72">Estimated Stops</span>
-                          <input
-                            type="number"
-                            min="0"
-                            value={form.estimatedStops}
-                            onChange={(event) => updateField("estimatedStops", event.target.value)}
-                            className={fieldClassName}
-                          />
-                          {errors.estimatedStops ? (
-                            <span className="mt-2 block text-sm text-amber-200">
-                              {errors.estimatedStops}
-                            </span>
-                          ) : null}
-                        </label>
-
-                        <label className="block md:col-span-2">
-                          <span className="mb-2 block text-sm text-white/72">Event Type</span>
-                          <input
-                            type="text"
-                            value={form.eventType}
-                            onChange={(event) => updateField("eventType", event.target.value)}
-                            placeholder="Meeting, wedding, concert, dinner, roadshow..."
-                            className={fieldClassName}
-                          />
-                        </label>
-                      </>
-                    ) : null}
-
-                    {form.service === "airport" ? (
-                      <>
-                        <label className="block md:col-span-2">
-                          <span className="mb-2 block text-sm text-white/72">Airport Route</span>
-                          <select
-                            value={form.airportRouteId}
-                            onChange={(event) => updateField("airportRouteId", event.target.value)}
-                            className={fieldClassName}
-                          >
-                            {hasAirportRoutes ? (
-                              airportRouteEntries.map((route) => (
-                                <option key={route.id} value={route.id} className="bg-[#101319]">
-                                  {route.label}
-                                </option>
-                              ))
-                            ) : (
-                              <option value="" className="bg-[#101319]">
-                                No flat-rate airport routes configured
-                              </option>
-                            )}
-                          </select>
-                          {errors.airportRouteId ? (
-                            <span className="mt-2 block text-sm text-amber-200">
-                              {errors.airportRouteId}
-                            </span>
-                          ) : null}
-                        </label>
-
-                        <label className="block">
-                          <span className="mb-2 block text-sm text-white/72">Airline</span>
-                          <input
-                            type="text"
-                            value={form.airline}
-                            onChange={(event) => updateField("airline", event.target.value)}
-                            placeholder="Optional"
-                            className={fieldClassName}
-                          />
-                        </label>
-
-                        <label className="block">
-                          <span className="mb-2 block text-sm text-white/72">Flight Number</span>
-                          <input
-                            type="text"
-                            value={form.flightNumber}
-                            onChange={(event) => updateField("flightNumber", event.target.value)}
-                            placeholder="Optional"
-                            className={fieldClassName}
-                          />
-                        </label>
-
-                        <div className="md:col-span-2">
-                          <button
-                            type="button"
-                            role="checkbox"
-                            aria-checked={form.roundTrip}
-                            aria-label="Add round trip"
-                            onClick={() => updateField("roundTrip", !form.roundTrip)}
-                            className={`flex w-full items-center justify-between rounded-[1.2rem] border px-5 py-4 text-sm transition-colors ${
-                              form.roundTrip
-                                ? "border-[var(--accent)] bg-[rgba(200,168,112,0.08)] text-white"
-                                : "border-white/10 bg-white/4 text-white/60 hover:border-white/20 hover:text-white/80"
-                            }`}
-                          >
-                            <span className="flex items-center gap-3">
-                              <span className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs transition-colors ${
-                                form.roundTrip
-                                  ? "border-[var(--accent)] bg-[var(--accent)] text-[#0a0a0e]"
-                                  : "border-white/20 bg-transparent"
-                              }`}>
-                                {form.roundTrip ? "✓" : ""}
-                              </span>
-                              <span className="font-medium">Round Trip</span>
-                              <span className="text-white/40">— include the return reservation now</span>
-                            </span>
-                          </button>
-                        </div>
-
-                        {form.roundTrip ? (
-                          <>
-                            <label className="block">
-                              <span className="mb-2 block text-sm text-white/72">Return Date</span>
-                              <input
-                                type="date"
-                                value={form.returnDate}
-                                onChange={(event) => updateField("returnDate", event.target.value)}
-                                className={fieldClassName}
-                              />
-                              {errors.returnDate ? (
-                                <span className="mt-2 block text-sm text-amber-200">
-                                  {errors.returnDate}
-                                </span>
-                              ) : null}
-                            </label>
-
-                            <label className="block">
-                              <span className="mb-2 block text-sm text-white/72">Return Time</span>
-                              <input
-                                type="time"
-                                value={form.returnTime}
-                                onChange={(event) => updateField("returnTime", event.target.value)}
-                                className={fieldClassName}
-                              />
-                              {errors.returnTime ? (
-                                <span className="mt-2 block text-sm text-amber-200">
-                                  {errors.returnTime}
-                                </span>
-                              ) : null}
-                            </label>
-                          </>
-                        ) : null}
-                      </>
-                    ) : null}
-
-                    {form.service === "custom" ? (
-                      <>
-                        <label className="block">
-                          <span className="mb-1 block text-sm text-white/72">Estimated Trip Hours</span>
-                          <span className="mb-2 block">
-                            <span className="rounded-full bg-white/8 px-2 py-0.5 text-[0.62rem] uppercase tracking-wider text-[var(--accent)]">
-                              {isCalculatingDistance ? "Calculating…" : "Auto-calculated"}
-                            </span>
+            {/* body */}
+            {step === 2 ? (
+              <div className="px-5 pb-5 pt-4">
+                <div className="flex flex-col gap-3">
+                  {hasVehicles ? (
+                    vehicles.map((vehicle) => (
+                      <button
+                        key={vehicle.slug}
+                        type="button"
+                        onClick={() => updateVehicle(vehicle.slug)}
+                        className={`w-full rounded-[1.2rem] border p-5 text-left transition-colors ${
+                          form.vehicle === vehicle.slug
+                            ? "border-[var(--accent)] bg-[rgba(200,168,112,0.07)]"
+                            : "border-white/10 bg-white/3 hover:border-white/20"
+                        }`}
+                      >
+                        <p className="text-[0.68rem] uppercase tracking-[0.22em] text-[var(--accent)]">
+                          Luxury SUV
+                        </p>
+                        <p className="mt-1 text-base font-semibold text-white">{vehicle.name}</p>
+                        <p className="mt-1 text-xs text-white/46">
+                          Up to {vehicle.capacity} passengers
+                        </p>
+                        {form.vehicle === vehicle.slug ? (
+                          <span className="mt-3 inline-block rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-0.5 text-[0.68rem] text-[var(--accent)]">
+                            Selected
                           </span>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={form.estimatedTripHours}
-                            readOnly
-                            className={`${fieldClassName} cursor-default opacity-70`}
-                          />
-                          {errors.estimatedTripHours ? (
-                            <span className="mt-2 block text-sm text-amber-200">
-                              {errors.estimatedTripHours}
-                            </span>
-                          ) : null}
-                        </label>
-
-                        <label className="block">
-                          <span className="mb-1 block text-sm text-white/72">Estimated Trip Miles</span>
-                          <span className="mb-2 block">
-                            <span className="rounded-full bg-white/8 px-2 py-0.5 text-[0.62rem] uppercase tracking-wider text-[var(--accent)]">
-                              {isCalculatingDistance ? "Calculating…" : "Auto-calculated"}
-                            </span>
-                          </span>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={form.estimatedTripMiles}
-                            readOnly
-                            className={`${fieldClassName} cursor-default opacity-70`}
-                          />
-                          {errors.estimatedTripMiles ? (
-                            <span className="mt-2 block text-sm text-amber-200">
-                              {errors.estimatedTripMiles}
-                            </span>
-                          ) : null}
-                        </label>
-
-                        {distanceError ? (
-                          <p className="rounded-lg border border-amber-400/20 bg-amber-400/8 px-4 py-3 text-sm text-amber-200">
-                            {distanceError}
-                          </p>
                         ) : null}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-sm text-white/50">{bookingUi.unavailableMessage}</p>
+                  )}
+                  {errors.vehicle ? (
+                    <span className="text-sm text-amber-200">{errors.vehicle}</span>
+                  ) : null}
+                </div>
 
-                        <label className="block">
-                          <span className="mb-2 block text-sm text-white/72">Extra Stops</span>
-                          <input
-                            type="number"
-                            min="0"
-                            value={form.extraStops}
-                            onChange={(event) => updateField("extraStops", event.target.value)}
-                            className={fieldClassName}
-                          />
-                          {errors.extraStops ? (
-                            <span className="mt-2 block text-sm text-amber-200">
-                              {errors.extraStops}
-                            </span>
-                          ) : null}
-                        </label>
+                <ContinueBtn onClick={() => setStep(3)} label="Continue to Contact →" />
+              </div>
+            ) : null}
+          </div>
 
-                        <label className="block">
-                          <span className="mb-2 block text-sm text-white/72">Wait Time (Hours)</span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.5"
-                            value={form.waitHours}
-                            onChange={(event) => updateField("waitHours", event.target.value)}
-                            className={fieldClassName}
-                          />
-                          {errors.waitHours ? (
-                            <span className="mt-2 block text-sm text-amber-200">
-                              {errors.waitHours}
-                            </span>
-                          ) : null}
-                        </label>
+          {/* ══════════════════════════════════════════════════════════
+              STEP 3 — Contact
+          ══════════════════════════════════════════════════════════ */}
+          <div className={`overflow-hidden rounded-[1.2rem] border transition-colors ${
+            step === 3 ? "border-white/14 bg-white/4" : "border-white/8 bg-white/2"
+          }`}>
+            {/* header */}
+            {step > 3 ? (
+              <button
+                type="button"
+                onClick={() => setStep(3)}
+                className="flex w-full items-center justify-between px-5 py-4 text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <StepBadge n={3} done />
+                  <span className="text-sm font-medium text-white">Contact</span>
+                </div>
+                <span className="max-w-[55%] truncate text-right text-xs text-white/40">
+                  {form.fullName || form.email}
+                </span>
+              </button>
+            ) : (
+              <div className={`flex items-center gap-3 px-5 py-4 ${step < 3 ? "opacity-35" : "border-b border-white/8"}`}>
+                <StepBadge n={3} done={false} />
+                <span className={`text-sm font-semibold ${step === 3 ? "text-white" : "text-white/50"}`}>Contact</span>
+              </div>
+            )}
 
-                        <label className="inline-flex items-center gap-3 rounded-[1rem] border border-white/8 bg-white/4 px-4 py-4 text-sm text-white/74 md:col-span-2">
-                          <input
-                            type="checkbox"
-                            checked={form.holidayOrEvent}
-                            onChange={(event) => updateField("holidayOrEvent", event.target.checked)}
-                          />
-                          Apply holiday or event surcharge to this estimate
-                        </label>
-                      </>
+            {/* body */}
+            {step === 3 ? (
+              <div className="px-5 pb-5 pt-4">
+                <div className="grid grid-cols-1 gap-4 min-w-0">
+                  <label className="block">
+                    <span className="mb-2 block text-sm text-white/72">Full Name</span>
+                    <input
+                      type="text"
+                      value={form.fullName}
+                      onChange={(event) => updateField("fullName", event.target.value)}
+                      placeholder="Passenger or organizer name"
+                      className={fieldClassName}
+                    />
+                    {errors.fullName ? (
+                      <span className="mt-2 block text-sm text-amber-200">{errors.fullName}</span>
                     ) : null}
+                  </label>
 
-                    <div className="md:col-span-2">
-                      <label className="block">
-                        <span className="mb-2 block text-sm text-white/72">
-                          Special Requests
-                        </span>
-                        <textarea
-                          rows={4}
-                          value={form.requests}
-                          onChange={(event) => updateField("requests", event.target.value)}
-                          placeholder="Flight number, child seat needs, event notes, multi-stop requests..."
-                          className={`${fieldClassName} min-h-[120px] resize-y`}
-                        />
-                      </label>
+                  <label className="block">
+                    <span className="mb-2 block text-sm text-white/72">Phone</span>
+                    <input
+                      type="tel"
+                      value={form.phone}
+                      onChange={(event) => updateField("phone", event.target.value)}
+                      placeholder="(555) 123-4567"
+                      className={fieldClassName}
+                    />
+                    {errors.phone ? (
+                      <span className="mt-2 block text-sm text-amber-200">{errors.phone}</span>
+                    ) : null}
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm text-white/72">Email</span>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(event) => updateField("email", event.target.value)}
+                      placeholder="name@example.com"
+                      className={fieldClassName}
+                    />
+                    {errors.email ? (
+                      <span className="mt-2 block text-sm text-amber-200">{errors.email}</span>
+                    ) : null}
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm text-white/72">
+                      Special Requests{" "}
+                      <span className="text-white/36">(optional)</span>
+                    </span>
+                    <textarea
+                      rows={3}
+                      value={form.requests}
+                      onChange={(event) => updateField("requests", event.target.value)}
+                      placeholder="Child seat, flight number, event notes, extra stops…"
+                      className={`${fieldClassName} resize-none`}
+                    />
+                  </label>
+                </div>
+
+                <ContinueBtn onClick={() => tryAdvance(3)} label="Review Summary →" />
+              </div>
+            ) : null}
+          </div>
+
+          {/* ══════════════════════════════════════════════════════════
+              STEP 4 — Summary + Submit
+          ══════════════════════════════════════════════════════════ */}
+          <div className={`overflow-hidden rounded-[1.2rem] border transition-colors ${
+            step === 4 ? "border-white/14 bg-white/4" : "border-white/8 bg-white/2"
+          }`}>
+            {/* header */}
+            <div className={`flex items-center gap-3 px-5 py-4 ${step < 4 ? "opacity-35" : step === 4 ? "border-b border-white/8" : ""}`}>
+              <StepBadge n={4} done={false} />
+              <span className={`text-sm font-semibold ${step === 4 ? "text-white" : "text-white/50"}`}>Summary</span>
+            </div>
+
+            {/* body */}
+            {step === 4 ? (
+              <div className="px-5 pb-5 pt-4">
+
+                {/* Details grid */}
+                <div className="grid grid-cols-1 gap-y-3 sm:grid-cols-2">
+                  {[
+                    { label: "Service",    value: selectedService?.title },
+                    { label: "Vehicle",    value: selectedVehicle?.name },
+                    { label: "Pickup",     value: form.pickup, full: true },
+                    { label: "Drop-off",   value: form.dropoff, full: true },
+                    { label: "Date",       value: fmtDate(form.date) },
+                    { label: "Time",       value: fmtTime(form.time) },
+                    { label: "Passengers", value: form.passengers },
+                    { label: "Luggage",    value: `${form.bags} ${Number(form.bags) === 1 ? "bag" : "bags"}` },
+                    { label: "Name",       value: form.fullName },
+                    { label: "Phone",      value: form.phone },
+                    { label: "Email",      value: form.email, full: true },
+                    form.requests
+                      ? { label: "Requests", value: form.requests, full: true }
+                      : null,
+                    form.service === "custom" && form.estimatedTripMiles && form.estimatedTripMiles !== "0"
+                      ? { label: "Est. Distance", value: `${form.estimatedTripMiles} mi · ${form.estimatedTripHours} hr` }
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .map(({ label, value, full }) => (
+                      <div key={label} className={`${full ? "sm:col-span-2" : ""} py-1`}>
+                        <p className="text-[0.7rem] uppercase tracking-[0.18em] text-white/36">{label}</p>
+                        <p className="mt-0.5 text-sm text-white/80">{value || "—"}</p>
+                      </div>
+                    ))}
+                </div>
+
+                <div className="my-5 border-t border-white/8" />
+
+                {/* Live pricing block */}
+                <div className="rounded-[1.2rem] border border-white/10 bg-white/3 p-5">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className="lux-section-label !mb-0">Live pricing</p>
+                      <h3 className="mt-2 font-display text-[1.6rem] leading-none text-white">
+                        {isCalculatingDistance
+                          ? "Calculating…"
+                          : estimate.quoteMode === "request"
+                            ? "Request quote"
+                            : `Est. total ${quoteDisplayAmount}`}
+                      </h3>
+                    </div>
+                    <div className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/56">
+                      {isCalculatingDistance ? "Computing route" : formatQuoteModeLabel(estimate)}
                     </div>
                   </div>
 
-                  <div className="glass-panel mt-5 rounded-[1.2rem] p-5">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                      <div>
-                        <p className="lux-section-label !mb-0">Live pricing</p>
-                        <h3 className="mt-3 font-display text-[1.6rem] leading-none text-white md:text-[2.4rem]">
-                          {estimate.quoteMode === "request"
-                            ? "Request quote"
-                            : `Estimated total ${quoteDisplayAmount}`}
-                        </h3>
-                      </div>
-                      <div className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/64">
-                        {formatQuoteModeLabel(estimate)}
-                      </div>
-                    </div>
-
-                    {estimate.lineItems?.length ? (
-                      <div className="mt-5 grid gap-3 text-sm text-white/64 sm:grid-cols-2">
-                        {estimate.lineItems.map((item) => (
-                          <p key={item.key} className={item.key === "minimum-threshold" ? "text-[var(--accent-strong)]" : ""}>
-                            {item.label}: {formatCurrency(item.amount)}
-                          </p>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="mt-5 text-sm leading-7 text-white/60">
-                        Submit the trip details and Autovise will review the route and return a manual quote.
-                      </p>
-                    )}
-
-                    <p className="mt-4 text-sm leading-7 text-white/48">
-                      {estimate.note || bookingUi.pricingNote}
+                  {isCalculatingDistance ? (
+                    <p className="mt-4 text-sm text-white/40">
+                      Calculating route distance — pricing will appear in a moment.
                     </p>
-
-                    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/8 pt-4">
-                      <span className="text-xs text-white/36 uppercase tracking-[0.2em]">We accept</span>
-                      {["Card", "Cash", "Venmo", "Zelle"].map((method) => (
-                        <span key={method} className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-xs text-white/54">
-                          {method}
-                        </span>
+                  ) : estimate.lineItems?.length ? (
+                    <div className="mt-4 grid gap-2 text-sm text-white/60 sm:grid-cols-2">
+                      {estimate.lineItems.map((item) => (
+                        <p key={item.key} className={item.key === "minimum-threshold" ? "text-[var(--accent-strong)]" : ""}>
+                          {item.label}: {formatCurrency(item.amount)}
+                        </p>
                       ))}
                     </div>
-                  </div>
+                  ) : (
+                    <p className="mt-4 text-sm leading-7 text-white/56">
+                      {distanceError
+                        ? "Route could not be calculated — Autovise will quote this manually."
+                        : "Submit your trip and we'll return a manual quote."}
+                    </p>
+                  )}
 
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !hasVehicles}
-                    className="lux-button mt-5 inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e] shadow-[0_18px_42px_rgba(210,176,107,0.22)] hover:bg-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-75"
-                  >
-                    {isSubmitting
-                      ? "Saving booking..."
-                      : hasVehicles
-                        ? bookingUi.submitButtonLabel
-                        : bookingUi.unavailableButtonLabel}
-                  </button>
-                </form>
-              ) : null}
+                  <p className="mt-3 text-sm leading-7 text-white/40">
+                    {estimate.note || bookingUi.pricingNote}
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/8 pt-4">
+                    <span className="text-xs uppercase tracking-[0.2em] text-white/32">We accept</span>
+                    {["Card", "Cash", "Venmo", "Zelle"].map((method) => (
+                      <span key={method} className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-xs text-white/50">
+                        {method}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !hasVehicles}
+                  className="lux-button mt-5 inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e] shadow-[0_18px_42px_rgba(210,176,107,0.22)] hover:bg-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-75"
+                >
+                  {isSubmitting
+                    ? "Saving booking…"
+                    : hasVehicles
+                      ? bookingUi.submitButtonLabel
+                      : bookingUi.unavailableButtonLabel}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  className="mt-3 w-full py-2 text-center text-xs text-white/36 hover:text-white/60"
+                >
+                  ← Edit contact details
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+        </form>
+      ) : null}
     </aside>
   );
 }

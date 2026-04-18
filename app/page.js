@@ -1,3 +1,4 @@
+import Image from "next/image";
 import SiteHeader from "./_components/site-header";
 import SiteFooter from "./_components/site-footer";
 import SiteFloatingActions from "./_components/site-floating-actions";
@@ -95,11 +96,34 @@ export default async function Home() {
                         A shape-matching skeleton is shown in the meantime so
                         layout is stable (no CLS).
       */}
+      {/* Spacer for fixed header on mobile — collapses on sm+ where header is sticky */}
+      <div className="h-16 sm:hidden" />
+
       <main id="top">
         <div className="relative overflow-hidden">
+
+          {/* ── Hero vehicle image — fades into the dark background below ── */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[320px] sm:h-[520px] md:h-[600px] lg:h-[680px]">
+            <Image
+              src="/hero-vehicle.jpg"
+              alt=""
+              aria-hidden="true"
+              fill
+              priority
+              className="object-cover opacity-40"
+              style={{ objectPosition: "center 35%" }}
+            />
+            {/* Top: subtle dark vignette so nav text stays readable */}
+            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#05060a] to-transparent" />
+            {/* Bottom: hard fade into the page background */}
+            <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#05060a] via-[rgba(5,6,10,0.85)] to-transparent" />
+            {/* Side vignettes to keep edges dark */}
+            <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#05060a] to-transparent" />
+            <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#05060a] to-transparent" />
+          </div>
+
           {/* Decorative background — CSS only, no JS */}
           <div className="pointer-events-none absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-[linear-gradient(135deg,#05060a_0%,#080a0e_40%,#06080f_100%)]" />
             <div
               className="absolute inset-0 opacity-[0.028]"
               style={{
@@ -108,28 +132,43 @@ export default async function Home() {
               }}
             />
             <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[rgba(200,168,112,0.3)] to-transparent" />
-            <div className="absolute -top-40 right-0 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(200,168,112,0.06),transparent_65%)]" />
             <div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,rgba(200,168,112,0.04),transparent_65%)]" />
           </div>
 
-          <section className="relative z-10 px-4 pb-8 pt-6 sm:px-5 md:pb-12 md:pt-10 [overflow-x:clip]">
+          <section className="relative z-10 px-4 pb-8 pt-28 sm:pt-6 sm:px-5 md:pb-12 md:pt-10 [overflow-x:clip]">
             <div className="limo-container grid grid-cols-1 gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-stretch">
 
-              {/* ── Left column: hero — pure server HTML ── */}
-              <div className="py-4 md:py-10">
-                <div className="lux-eyebrow">{heroContent.eyebrow}</div>
-                <p className="mt-6 text-[0.92rem] uppercase tracking-[0.28em] text-[var(--accent)]">
-                  {heroContent.kicker}
-                </p>
-                {/* h1 is the LCP candidate — server-rendered, no JS gate */}
-                <h1 className="mt-7 max-w-[820px] font-display text-[2rem] leading-[1] tracking-[-0.03em] text-white sm:text-[2.8rem] md:text-[3.8rem] lg:text-[4.6rem] xl:text-[5.4rem]">
+              {/* ── Row 1 left: eyebrow + kicker + h1 ── */}
+              <div className="pt-4 md:pt-10 lg:row-start-1 lg:col-start-1">
+                <div className="hidden sm:block">
+                  <div className="lux-eyebrow">{heroContent.eyebrow}</div>
+                </div>
+                {heroContent.kicker ? (
+                  <p className="mt-6 text-[0.92rem] uppercase tracking-[0.28em] text-[var(--accent)]">
+                    {heroContent.kicker}
+                  </p>
+                ) : null}
+                <h1 className="mt-7 max-w-[820px] font-display font-bold text-[2rem] leading-[1] tracking-[-0.03em] text-white sm:text-[2.8rem] md:text-[3.8rem] lg:text-[4.6rem] xl:text-[5.4rem]">
                   {heroContent.title}
                 </h1>
-                <p className="mt-7 max-w-[680px] text-lg leading-8 text-white/68 md:text-xl">
-                  {heroContent.description}
-                </p>
+                {heroContent.description ? (
+                  <p className="mt-7 max-w-[680px] text-lg leading-8 text-white/68 md:text-xl">
+                    {heroContent.description}
+                  </p>
+                ) : null}
+              </div>
 
-                <div className="mt-9 flex flex-wrap gap-4">
+              {/* ── Booking form — below h1 on mobile, right column on desktop ── */}
+              <div className="lg:row-start-1 lg:row-end-3 lg:col-start-2">
+                <BookingPanelLazy
+                  initialCatalog={catalog}
+                  initialSiteContent={siteContent}
+                />
+              </div>
+
+              {/* ── Row 2 left: CTAs + stat cards ── */}
+              <div className="lg:row-start-2 lg:col-start-1 lg:pb-10">
+                <div className="flex flex-wrap gap-4">
                   <a
                     href="#booking"
                     className="lux-button inline-flex min-h-14 items-center justify-center rounded-full bg-[var(--accent)] px-8 text-sm font-bold text-[#0a0a0e] shadow-[0_18px_40px_rgba(210,176,107,0.24)] hover:bg-[var(--accent-dark)]"
@@ -144,7 +183,6 @@ export default async function Home() {
                   </a>
                 </div>
 
-                {/* Stat cards — server HTML, always visible (no fade-in / opacity:0) */}
                 <div className="mt-8 grid max-w-[920px] grid-cols-1 gap-4 sm:grid-cols-2">
                   {heroStats.map((item, index) => (
                     <HeroStatCard key={`${item.value}-${index}`} item={item} />
@@ -152,11 +190,6 @@ export default async function Home() {
                 </div>
               </div>
 
-              {/* ── Right column: booking form — deferred, ssr:false ── */}
-              <BookingPanelLazy
-                initialCatalog={catalog}
-                initialSiteContent={siteContent}
-              />
             </div>
           </section>
         </div>

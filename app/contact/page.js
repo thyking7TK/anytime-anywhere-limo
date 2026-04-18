@@ -1,6 +1,5 @@
 import Link from "next/link";
 import SiteHeader from "@/app/_components/site-header";
-import SiteFooter from "@/app/_components/site-footer";
 import SiteFloatingActions from "@/app/_components/site-floating-actions";
 import { getCatalog } from "@/lib/catalog";
 import { getSiteContent } from "@/lib/site-content";
@@ -126,7 +125,6 @@ export default async function ContactPage() {
         </section>
       </main>
 
-      <SiteFooter siteContent={siteContent} />
       <SiteFloatingActions
         contactPhone={resolvedContactPhone}
         callLabel={siteContent.floatingActions?.callLabel || "Call Concierge"}

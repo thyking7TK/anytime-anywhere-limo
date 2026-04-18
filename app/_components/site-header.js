@@ -236,7 +236,7 @@ export default function SiteHeader({ siteContent }) {
   ];
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/6 bg-[rgba(5,6,10,0.72)] backdrop-blur-xl">
+    <header className="fixed sm:sticky top-0 z-30 w-full border-b border-white/6 bg-[rgba(5,6,10,0.72)] backdrop-blur-xl">
       <div className="limo-container flex min-h-[64px] items-center justify-between gap-4 md:min-h-[80px] md:gap-6">
         <Link href="/" aria-label="Autovise Black Car — Nationwide Luxury Transportation" className="shrink-0">
           <BrandLogo brandContent={brandContent} />
@@ -260,7 +260,7 @@ export default function SiteHeader({ siteContent }) {
 
         <Link
           href="/#booking"
-          className="lux-button hidden min-h-14 items-center justify-center rounded-full bg-[var(--accent)] px-7 text-sm font-bold text-[#0a0a0e] shadow-[0_8px_24px_rgba(200,168,112,0.28)] hover:bg-[var(--accent-dark)] md:inline-flex"
+          className="lux-button inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--accent)] px-5 text-xs font-bold text-[#0a0a0e] shadow-[0_8px_24px_rgba(200,168,112,0.28)] hover:bg-[var(--accent-dark)] md:min-h-14 md:px-7 md:text-sm"
         >
           {navigationContent.reserve || "Book Now"}
         </Link>
