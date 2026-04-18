@@ -759,11 +759,23 @@ export default function AnytimeAnywhereLimoWebsite({
               <div className="px-5 pb-5 pt-4">
                 <div className="grid grid-cols-1 gap-4 min-w-0">
 
-                  {/* Service label — static, single service */}
-                  <div className="flex items-center gap-2 rounded-xl border border-[rgba(200,168,112,0.22)] bg-[rgba(200,168,112,0.06)] px-4 py-3">
-                    <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
-                    <span className="text-sm font-semibold text-white">Black Car Service</span>
-                  </div>
+                  {/* Service */}
+                  <label className="block" htmlFor="field-service">
+                    <span className="mb-2 block text-sm text-white/72">Service</span>
+                    <select
+                      id="field-service"
+                      aria-required="true"
+                      value={form.service}
+                      onChange={(event) => updateServiceType(event.target.value)}
+                      className={fieldClassName}
+                    >
+                      {bookingServiceEntries.map((service) => (
+                        <option key={service.id} value={service.id} className="bg-[#101319]">
+                          {service.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
                   {/* Pickup */}
                   <AddressAutocompleteField
