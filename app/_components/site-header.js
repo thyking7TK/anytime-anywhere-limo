@@ -229,7 +229,6 @@ export default function SiteHeader({ siteContent }) {
   const navItems = [
     ["/services", navigationContent.services || "Services"],
     ["/coverage", "Coverage"],
-    ["/rates", "Rates"],
     ["/reviews", navigationContent.reviews || "Reviews"],
     ["/faq", "FAQ"],
     ["/contact", navigationContent.contact || "Contact"],
