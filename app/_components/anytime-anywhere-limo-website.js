@@ -317,6 +317,20 @@ export default function AnytimeAnywhereLimoWebsite({
 
   // ─── multi-step accordion state ─────────────────────────────────────────
   const [step, setStep] = useState(1);
+  const formTopRef = useRef(null);
+
+  // Scroll to the top of the form on step change (mobile only, not step 4)
+  useEffect(() => {
+    if (step === 4) return;
+    if (!formTopRef.current) return;
+    // Only scroll on mobile viewports
+    if (window.innerWidth >= 1024) return;
+    // Small delay so the new step has rendered before we measure
+    const id = setTimeout(() => {
+      formTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+    return () => clearTimeout(id);
+  }, [step]);
 
   const estimate = calculateEstimate(form, catalog);
   const selectedVehicle = getVehicleBySlug(form.vehicle, catalog) ?? vehicles[0] ?? null;
@@ -607,6 +621,7 @@ export default function AnytimeAnywhereLimoWebsite({
   return (
     <aside
       id="booking"
+      ref={formTopRef}
       className="booking-panel glass-panel min-w-0 overflow-hidden rounded-[1.4rem] p-6 md:p-8"
       aria-label={heroContent.bookingEyebrow}
     >
