@@ -134,22 +134,8 @@ function AddressAutocompleteField({
             if (typeof window !== "undefined" && window.scrollX !== 0) {
               window.scrollTo({ left: 0, behavior: "instant" });
             }
-            blurTimeoutRef.current = setTimeout(async () => {
+            blurTimeoutRef.current = setTimeout(() => {
               setIsFocused(false);
-              if (value.trim().length >= 3) {
-                try {
-                  const res = await fetch(
-                    `/api/address-search?q=${encodeURIComponent(value.trim())}`,
-                  );
-                  const data = await res.json();
-                  const first = data.suggestions?.[0];
-                  if (first?.latitude && first?.longitude) {
-                    onCoordinates?.({ lat: first.latitude, lon: first.longitude });
-                  }
-                } catch {
-                  // silent
-                }
-              }
               if (typeof window !== "undefined" && window.scrollX !== 0) {
                 window.scrollTo({ left: 0, behavior: "instant" });
               }
@@ -467,6 +453,9 @@ export default function AnytimeAnywhereLimoWebsite({
     }));
     clearFieldError(field);
     setSubmitError("");
+    // Clear stale coordinates when address text is changed manually
+    if (field === "pickup") setPickupCoords(null);
+    if (field === "dropoff") setDropoffCoords(null);
   }
 
   function updateVehicle(vehicleSlug) {
