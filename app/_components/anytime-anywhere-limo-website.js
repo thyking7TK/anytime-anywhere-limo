@@ -789,7 +789,7 @@ export default function AnytimeAnywhereLimoWebsite({
                   />
 
                   {/* Date + Time */}
-                  <div className="grid grid-cols-2 gap-4 min-w-0">
+                  <div className="grid grid-cols-1 gap-4 min-w-0 sm:grid-cols-2">
                     <label className="block min-w-0">
                       <span className="mb-2 block text-sm text-white/72">Date</span>
                       <input
@@ -797,6 +797,7 @@ export default function AnytimeAnywhereLimoWebsite({
                         value={form.date}
                         onChange={(event) => updateField("date", event.target.value)}
                         className={fieldClassName}
+                        style={{ WebkitAppearance: "none", appearance: "none" }}
                       />
                       {errors.date ? (
                         <span className="mt-2 block text-sm text-amber-200">{errors.date}</span>
@@ -810,6 +811,7 @@ export default function AnytimeAnywhereLimoWebsite({
                         value={form.time}
                         onChange={(event) => updateField("time", event.target.value)}
                         className={fieldClassName}
+                        style={{ WebkitAppearance: "none", appearance: "none" }}
                       />
                       {errors.time ? (
                         <span className="mt-2 block text-sm text-amber-200">{errors.time}</span>
