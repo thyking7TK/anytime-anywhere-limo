@@ -9,6 +9,8 @@ import {
   getBookingPaymentAmountCents,
   getAirportRouteById,
   getBookingServiceById,
+  getMaineTourById,
+  getMaineTourPricingOption,
   getVehicleBySlug,
   normalizeBookingForm,
   validateBooking,
@@ -82,6 +84,12 @@ export async function POST(request) {
     : null;
   const selectedVehicle = getVehicleBySlug(form.vehicle, catalog);
   const selectedService = getBookingServiceById(form.service);
+  const selectedTour =
+    form.service === "maine-tours" ? getMaineTourById(form.tourPackageId) : null;
+  const selectedTourPricing =
+    form.service === "maine-tours"
+      ? getMaineTourPricingOption(form.tourPackageId, form.tourPricingTierIndex)
+      : null;
   const airportRoute =
     form.service === "airport"
       ? getAirportRouteById(form.airportRouteId, catalog)
@@ -92,6 +100,18 @@ export async function POST(request) {
     isStripeConfigured() &&
     estimate.quoteMode === "instant" &&
     paymentAmountCents > 0;
+  const tourRequestDetails =
+    form.service === "maine-tours" && selectedTour && selectedTourPricing
+      ? [
+          `Maine Touring Package: ${selectedTour.title}`,
+          `Package Tier: ${selectedTourPricing.title}`,
+          `Package Price: ${selectedTourPricing.price}`,
+          `Route: ${selectedTour.route.join(" / ")}`,
+        ].join("\n")
+      : "";
+  const combinedRequests = [tourRequestDetails, form.requests]
+    .filter(Boolean)
+    .join("\n\n");
   const bookingForNotifications = {
     reference,
     estimate,
@@ -107,7 +127,7 @@ export async function POST(request) {
     returnLocalAt,
     passengers: Number(form.passengers),
     bags: Number(form.bags),
-    requests: form.requests,
+    requests: combinedRequests,
     roundTrip: form.roundTrip,
     airportRouteLabel: airportRoute?.label ?? "",
     airline: form.airline,
@@ -136,7 +156,7 @@ export async function POST(request) {
       rideLocalAt,
       passengers: Number(form.passengers),
       bags: Number(form.bags),
-      requests: form.requests,
+      requests: combinedRequests,
       estimatedTotalCents: estimate.total * 100,
       estimatedDepositCents: paymentEnabled ? paymentAmountCents : 0,
       status: "new",

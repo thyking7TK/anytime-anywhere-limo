@@ -1,49 +1,89 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import BookingPaymentCheckout from "@/app/_components/booking-payment-checkout";
 import {
   bookingServices,
   calculateEstimate,
-  computeStartingRates,
   defaultForm,
   fleet,
   formatCurrency,
+  formatRideLocalTimestamp,
   getBookingServiceById,
   getDefaultCatalog,
   getVehicleBySlug,
   validateBooking,
 } from "@/lib/booking";
+import {
+  getMaineTourById,
+  getMaineTourPricingOption,
+  maineTourPackages,
+} from "@/lib/maine-tours";
 import { getDefaultSiteContent } from "@/lib/site-content-shared";
 
 const fieldClassName =
   "frost-input w-full min-w-0 rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-4 text-sm text-white outline-none placeholder:text-white/32 focus:border-[var(--accent)] focus:bg-white/7";
 const addressSuggestionCache = new Map();
 
-const proofChips = [
-  "Flight tracking",
-  "Transparent pricing",
-  "24/7 reservations",
-  "Professional chauffeurs",
-];
-
 function formatQuoteModeLabel(estimate) {
   return estimate?.quoteMode === "request" ? "Request quote" : "Instant estimate";
 }
 
-// ─── tiny display helpers ──────────────────────────────────────────────────
-function fmtDate(d) {
-  if (!d) return "";
-  const [, m, day] = d.split("-");
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  return `${months[parseInt(m, 10) - 1]} ${parseInt(day, 10)}`;
+function formatShortDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const [, month, day] = String(value).split("-");
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[Math.max(0, Number(month) - 1)]} ${Number(day)}`;
 }
-function fmtTime(t) {
-  if (!t) return "";
-  const [h, m] = t.split(":");
-  const hr = parseInt(h, 10);
-  return `${hr % 12 || 12}:${m}${hr >= 12 ? "pm" : "am"}`;
+
+function formatShortTime(value) {
+  if (!value) {
+    return "";
+  }
+
+  const [hours, minutes] = String(value).split(":");
+  const hour = Number(hours);
+  return `${hour % 12 || 12}:${minutes}${hour >= 12 ? "pm" : "am"}`;
+}
+
+function StepBadge({ active, done, number }) {
+  if (done) {
+    return (
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[0.65rem] font-bold text-[#0a0a0e]">
+        ✓
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+        active
+          ? "border-[var(--accent)] text-[var(--accent)]"
+          : "border-white/20 text-white/30"
+      }`}
+    >
+      {number}
+    </span>
+  );
+}
+
+function ContinueButton({ label, onClick, disabled = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="lux-button mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e] shadow-[0_12px_30px_rgba(210,176,107,0.18)] hover:bg-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {label}
+    </button>
+  );
 }
 
 function AddressAutocompleteField({
@@ -131,14 +171,8 @@ function AddressAutocompleteField({
             void loadSuggestions(value);
           }}
           onBlur={() => {
-            if (typeof window !== "undefined" && window.scrollX !== 0) {
-              window.scrollTo({ left: 0, behavior: "instant" });
-            }
             blurTimeoutRef.current = setTimeout(() => {
               setIsFocused(false);
-              if (typeof window !== "undefined" && window.scrollX !== 0) {
-                window.scrollTo({ left: 0, behavior: "instant" });
-              }
             }, 140);
           }}
           placeholder={placeholder}
@@ -172,17 +206,14 @@ function AddressAutocompleteField({
                         suggestion.selectionLabel || suggestion.displayName,
                       );
                       if (suggestion.latitude && suggestion.longitude) {
-                        onCoordinates?.({ lat: suggestion.latitude, lon: suggestion.longitude });
+                        onCoordinates?.({
+                          lat: suggestion.latitude,
+                          lon: suggestion.longitude,
+                        });
                       }
                       setSuggestions([]);
                       setIsFocused(false);
-                      if (inputRef.current) {
-                        try { inputRef.current.setSelectionRange(0, 0); } catch (_) {}
-                        inputRef.current.blur();
-                      }
-                      if (typeof window !== "undefined" && window.scrollX !== 0) {
-                        window.scrollTo({ left: 0, behavior: "instant" });
-                      }
+                      inputRef.current?.blur();
                     }}
                     className="block w-full border-b border-white/6 px-4 py-3 text-left last:border-b-0 hover:bg-white/6"
                   >
@@ -209,42 +240,138 @@ export default function AnytimeAnywhereLimoWebsite({
   initialCatalog,
   initialSiteContent,
 }) {
+  const searchParams = useSearchParams();
   const catalog = initialCatalog ?? getDefaultCatalog();
   const siteContent = initialSiteContent ?? getDefaultSiteContent();
   const vehicles = Array.isArray(catalog.vehicles) ? catalog.vehicles : fleet;
-  const bookingServiceEntries = Array.isArray(catalog.bookingServices)
-    ? catalog.bookingServices
-    : bookingServices;
   const airportRouteEntries = Array.isArray(catalog.airportRoutes)
     ? catalog.airportRoutes.filter((route) => route.active !== false)
     : [];
-  const heroStats = Array.isArray(siteContent.heroStats)
-    ? siteContent.heroStats
-    : [];
-  const proofContent = siteContent.proof ?? {};
+  const bookingServiceEntries = (() => {
+    const entries = Array.isArray(catalog.bookingServices)
+      ? [...catalog.bookingServices]
+      : [];
+
+    bookingServices.forEach((service) => {
+      if (!entries.some((item) => item.id === service.id)) {
+        entries.push(service);
+      }
+    });
+
+    return entries;
+  })();
+
   const heroContent = siteContent.hero ?? {};
   const bookingUi = siteContent.bookingUi ?? {};
-  const visibleProofChips = Array.isArray(proofContent.chips)
-    ? proofContent.chips.filter((chip) => String(chip ?? "").trim())
-    : proofChips;
   const hasVehicles = vehicles.length > 0;
   const vehicleAvailabilityMessage = hasVehicles
     ? ""
     : bookingUi.unavailableMessage;
 
+  function createInitialFormState() {
+    return {
+      ...defaultForm,
+      service: "custom",
+      vehicle: vehicles[0]?.slug ?? "",
+      airportRouteId: airportRouteEntries[0]?.id ?? "",
+      tourPackageId: maineTourPackages[0]?.id ?? defaultForm.tourPackageId,
+      tourPricingTierIndex: "0",
+    };
+  }
+
+  const [form, setForm] = useState(createInitialFormState);
+  const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState("");
+  const [submittedBooking, setSubmittedBooking] = useState(null);
+  const [paymentState, setPaymentState] = useState(null);
+  const [checkingPaymentStatus, setCheckingPaymentStatus] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [step, setStep] = useState(1);
   const [pickupCoords, setPickupCoords] = useState(null);
   const [dropoffCoords, setDropoffCoords] = useState(null);
   const [distanceInfo, setDistanceInfo] = useState(null);
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
   const [distanceError, setDistanceError] = useState("");
+  const formTopRef = useRef(null);
+  const initializedFromQueryRef = useRef(false);
+
+  const estimate = calculateEstimate(form, catalog);
+  const selectedVehicle = getVehicleBySlug(form.vehicle, catalog) ?? vehicles[0] ?? null;
+  const selectedService =
+    getBookingServiceById(form.service) ??
+    bookingServiceEntries[0] ??
+    null;
+  const selectedTour = getMaineTourById(form.tourPackageId);
+  const selectedTourPricing = getMaineTourPricingOption(
+    form.tourPackageId,
+    form.tourPricingTierIndex,
+  );
+  const showVehicleStep = form.service !== "maine-tours";
+  const passengerLimit = Math.max(selectedVehicle?.capacity ?? 6, 12);
+  const passengerOptions = Array.from(
+    { length: passengerLimit },
+    (_, index) => String(index + 1),
+  );
+  const luggageOptions = Array.from({ length: 13 }, (_, index) => String(index));
+  const quoteDisplayAmount =
+    estimate.total > 0 ? formatCurrency(estimate.total) : "Request Quote";
+
+  useEffect(() => {
+    if (initializedFromQueryRef.current) {
+      return;
+    }
+
+    const serviceParam = searchParams.get("service");
+    const tourPackageIdParam = searchParams.get("tourPackageId");
+    const tourPricingTierIndexParam = searchParams.get("tourPricingTierIndex");
+    const pickupParam = searchParams.get("pickup");
+    const passengersParam = searchParams.get("passengers");
+    const requestsParam = searchParams.get("requests");
+
+    if (
+      !serviceParam &&
+      !tourPackageIdParam &&
+      !tourPricingTierIndexParam &&
+      !pickupParam &&
+      !passengersParam &&
+      !requestsParam
+    ) {
+      initializedFromQueryRef.current = true;
+      return;
+    }
+
+    initializedFromQueryRef.current = true;
+    setForm((current) => ({
+      ...current,
+      service:
+        serviceParam === "maine-tours" || serviceParam === "custom"
+          ? serviceParam
+          : current.service,
+      tourPackageId:
+        tourPackageIdParam || current.tourPackageId || maineTourPackages[0]?.id || "",
+      tourPricingTierIndex:
+        tourPricingTierIndexParam || current.tourPricingTierIndex || "0",
+      pickup: pickupParam || current.pickup,
+      passengers: passengersParam || current.passengers,
+      requests: requestsParam || current.requests,
+    }));
+    setStep(1);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!pickupCoords || !dropoffCoords) {
       setDistanceInfo(null);
       setDistanceError("");
       setForm((current) => {
-        if (current.service !== "custom") return current;
-        return { ...current, estimatedTripMiles: "0", estimatedTripHours: "0" };
+        if (current.service !== "custom") {
+          return current;
+        }
+
+        return {
+          ...current,
+          estimatedTripMiles: "0",
+          estimatedTripHours: "0",
+        };
       });
       return undefined;
     }
@@ -252,6 +379,7 @@ export default function AnytimeAnywhereLimoWebsite({
     const timer = setTimeout(async () => {
       setIsCalculatingDistance(true);
       setDistanceError("");
+
       try {
         const params = new URLSearchParams({
           pickupLat: pickupCoords.lat,
@@ -260,25 +388,28 @@ export default function AnytimeAnywhereLimoWebsite({
           dropoffLon: dropoffCoords.lon,
         });
         const response = await fetch(`/api/distance?${params}`);
-        if (!response.ok) throw new Error("Distance API error");
+
+        if (!response.ok) {
+          throw new Error("Distance API error");
+        }
+
         const data = await response.json();
         setDistanceInfo(data);
-        setDistanceError("");
         setForm((current) => {
-          if (current.service !== "custom") return current;
-          const autoMiles = String(Math.round(data.distanceMiles));
-          const autoHours = String(Math.round(data.durationHours * 2) / 2);
+          if (current.service !== "custom") {
+            return current;
+          }
+
           return {
             ...current,
-            estimatedTripMiles: autoMiles,
-            estimatedTripHours: autoHours,
+            estimatedTripMiles: String(Math.round(data.distanceMiles)),
+            estimatedTripHours: String(Math.round(data.durationHours * 2) / 2),
           };
         });
-        if (typeof window !== "undefined" && window.scrollX !== 0) {
-          window.scrollTo({ left: 0, behavior: "instant" });
-        }
       } catch {
-        setDistanceError("Could not calculate route. Please enter addresses manually or contact us.");
+        setDistanceError(
+          "Could not calculate route. Please enter addresses manually or contact us.",
+        );
       } finally {
         setIsCalculatingDistance(false);
       }
@@ -287,77 +418,21 @@ export default function AnytimeAnywhereLimoWebsite({
     return () => clearTimeout(timer);
   }, [pickupCoords, dropoffCoords]);
 
-  // ─── form state — service defaults to "custom" ──────────────────────────
-  const [form, setForm] = useState(() => ({
-    ...defaultForm,
-    service: "custom",
-    vehicle: vehicles[0]?.slug ?? "",
-    airportRouteId: airportRouteEntries[0]?.id ?? "",
-  }));
-  const [errors, setErrors] = useState({});
-  const [submitError, setSubmitError] = useState("");
-  const [submittedBooking, setSubmittedBooking] = useState(null);
-  const [paymentState, setPaymentState] = useState(null);
-  const [checkingPaymentStatus, setCheckingPaymentStatus] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // ─── multi-step accordion state ─────────────────────────────────────────
-  const [step, setStep] = useState(1);
-  const formTopRef = useRef(null);
-
-  // Scroll to the top of the form on step change (mobile only, not step 4)
   useEffect(() => {
-    if (step === 4) return;
-    if (!formTopRef.current) return;
-    // Only scroll on mobile viewports
-    if (window.innerWidth >= 1024) return;
-    // Small delay so the new step has rendered before we measure
-    const id = setTimeout(() => {
+    if (step === 4 || !formTopRef.current) {
+      return undefined;
+    }
+
+    if (window.innerWidth >= 1024) {
+      return undefined;
+    }
+
+    const timeoutId = setTimeout(() => {
       formTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 60);
-    return () => clearTimeout(id);
+
+    return () => clearTimeout(timeoutId);
   }, [step]);
-
-  const estimate = calculateEstimate(form, catalog);
-  const selectedVehicle = getVehicleBySlug(form.vehicle, catalog) ?? vehicles[0] ?? null;
-  const selectedService =
-    getBookingServiceById(form.service) ??
-    bookingServiceEntries[0] ??
-    null;
-  const selectedAirportRoute =
-    airportRouteEntries.find((route) => route.id === form.airportRouteId) ??
-    airportRouteEntries[0] ??
-    null;
-  const passengerLimit = Math.max(selectedVehicle?.capacity ?? 6, 12);
-  const passengerOptions = Array.from(
-    { length: passengerLimit },
-    (_, index) => String(index + 1),
-  );
-  const luggageOptions = Array.from({ length: 13 }, (_, i) => String(i));
-  const quoteDisplayAmount = estimate.total > 0
-    ? formatCurrency(estimate.total)
-    : "Request Quote";
-  const hasAirportRoutes = airportRouteEntries.length > 0;
-
-  useEffect(() => {
-    const elements = document.querySelectorAll(".fade-in");
-    if (!elements.length) return undefined;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("in-view");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
-    );
-
-    elements.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -392,17 +467,14 @@ export default function AnytimeAnywhereLimoWebsite({
 
         setSubmittedBooking(data.booking ?? null);
         setPaymentState(data.payment ?? null);
-
-        const cleanUrl = `${window.location.pathname}${window.location.hash || "#booking"}`;
+        const cleanUrl = `${window.location.pathname}${window.location.hash || "#book-now"}`;
         window.history.replaceState({}, "", cleanUrl);
       } catch (error) {
-        if (!isActive) {
-          return;
+        if (isActive) {
+          setSubmitError(
+            error.message || "We could not confirm payment status right now.",
+          );
         }
-
-        setSubmitError(
-          error.message || "We could not confirm payment status right now.",
-        );
       } finally {
         if (isActive) {
           setCheckingPaymentStatus(false);
@@ -414,6 +486,35 @@ export default function AnytimeAnywhereLimoWebsite({
 
     return () => {
       isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleTourSelection(event) {
+      const detail = event.detail ?? {};
+      setForm((current) => ({
+        ...current,
+        service: "maine-tours",
+        tourPackageId: detail.tourPackageId || maineTourPackages[0]?.id || "",
+        tourPricingTierIndex: String(detail.tourPricingTierIndex ?? 0),
+      }));
+      setErrors({});
+      setSubmitError("");
+      setSubmittedBooking(null);
+      setPaymentState(null);
+      setStep(1);
+    }
+
+    window.addEventListener(
+      "autovise:touring-package-selected",
+      handleTourSelection,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "autovise:touring-package-selected",
+        handleTourSelection,
+      );
     };
   }, []);
 
@@ -429,33 +530,46 @@ export default function AnytimeAnywhereLimoWebsite({
     });
   }
 
+  function updateField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+    clearFieldError(field);
+    setSubmitError("");
+
+    if (field === "pickup") {
+      setPickupCoords(null);
+    }
+
+    if (field === "dropoff") {
+      setDropoffCoords(null);
+    }
+  }
+
   function updateServiceType(nextService) {
-    setForm((currentForm) => ({
-      ...currentForm,
+    setForm((current) => ({
+      ...current,
       service: nextService,
       airportRouteId:
         nextService === "airport"
-          ? currentForm.airportRouteId || airportRouteEntries[0]?.id || ""
-          : currentForm.airportRouteId,
-      roundTrip: nextService === "airport" ? currentForm.roundTrip : false,
-      returnDate: nextService === "airport" ? currentForm.returnDate : "",
-      returnTime: nextService === "airport" ? currentForm.returnTime : "",
+          ? current.airportRouteId || airportRouteEntries[0]?.id || ""
+          : current.airportRouteId,
+      roundTrip: nextService === "airport" ? current.roundTrip : false,
+      returnDate: nextService === "airport" ? current.returnDate : "",
+      returnTime: nextService === "airport" ? current.returnTime : "",
+      tourPackageId:
+        nextService === "maine-tours"
+          ? current.tourPackageId || maineTourPackages[0]?.id || ""
+          : current.tourPackageId,
+      tourPricingTierIndex:
+        nextService === "maine-tours"
+          ? current.tourPricingTierIndex || "0"
+          : current.tourPricingTierIndex,
     }));
     clearFieldError("service");
     clearFieldError("airportRouteId");
+    clearFieldError("tourPackageId");
+    clearFieldError("tourPricingTierIndex");
+    setStep(1);
     setSubmitError("");
-  }
-
-  function updateField(field, value) {
-    setForm((currentForm) => ({
-      ...currentForm,
-      [field]: value,
-    }));
-    clearFieldError(field);
-    setSubmitError("");
-    // Clear stale coordinates when address text is changed manually
-    if (field === "pickup") setPickupCoords(null);
-    if (field === "dropoff") setDropoffCoords(null);
   }
 
   function updateVehicle(vehicleSlug) {
@@ -465,24 +579,15 @@ export default function AnytimeAnywhereLimoWebsite({
       return;
     }
 
-    setForm((currentForm) => ({
-      ...currentForm,
+    setForm((current) => ({
+      ...current,
       vehicle: vehicleSlug,
       passengers: String(
-        Math.min(Number(currentForm.passengers), nextVehicle.capacity) || 1,
+        Math.min(Number(current.passengers), nextVehicle.capacity) || 1,
       ),
     }));
-
     clearFieldError("vehicle");
     clearFieldError("passengers");
-    setSubmitError("");
-  }
-
-  function scrollToBooking() {
-    document.getElementById("booking")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
   }
 
   function resetBookingExperience() {
@@ -491,33 +596,68 @@ export default function AnytimeAnywhereLimoWebsite({
     setErrors({});
     setSubmitError("");
     setStep(1);
-    setForm({
-      ...defaultForm,
-      service: "custom",
-      vehicle: vehicles[0]?.slug ?? "",
-      airportRouteId: airportRouteEntries[0]?.id ?? "",
+    setForm(createInitialFormState());
+    document.getElementById("book-now")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
     });
-    scrollToBooking();
   }
 
-  // ─── partial step validation ─────────────────────────────────────────────
   function tryAdvance(fromStep) {
-    const errs = {};
+    const nextErrors = {};
+
     if (fromStep === 1) {
-      if (!form.pickup.trim()) errs.pickup = "Pickup location is required.";
-      if (!form.dropoff.trim()) errs.dropoff = "Drop-off location is required.";
-      if (!form.date) errs.date = "Date is required.";
-      if (!form.time) errs.time = "Time is required.";
+      if (!form.pickup.trim()) {
+        nextErrors.pickup = "Pickup location is required.";
+      }
+
+      if (!form.dropoff.trim()) {
+        nextErrors.dropoff = "Drop-off location is required.";
+      }
+
+      if (!form.date) {
+        nextErrors.date = "Date is required.";
+      }
+
+      if (!form.time) {
+        nextErrors.time = "Time is required.";
+      }
+
+      if (form.service === "maine-tours") {
+        if (!form.tourPackageId) {
+          nextErrors.tourPackageId = "Tour package is required.";
+        }
+
+        if (!selectedTourPricing) {
+          nextErrors.tourPricingTierIndex = "Package tier is required.";
+        }
+      }
     }
+
     if (fromStep === 3) {
-      if (!form.fullName.trim()) errs.fullName = "Full name is required.";
-      if (!form.phone.trim()) errs.phone = "Phone number is required.";
-      if (!form.email.trim()) errs.email = "Email is required.";
+      if (!form.fullName.trim()) {
+        nextErrors.fullName = "Full name is required.";
+      }
+
+      if (!form.phone.trim()) {
+        nextErrors.phone = "Phone number is required.";
+      }
+
+      if (!form.email.trim()) {
+        nextErrors.email = "Email is required.";
+      }
     }
-    if (Object.keys(errs).length > 0) {
-      setErrors((prev) => ({ ...prev, ...errs }));
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors((current) => ({ ...current, ...nextErrors }));
       return;
     }
+
+    if (fromStep === 1 && form.service === "maine-tours") {
+      setStep(3);
+      return;
+    }
+
     setStep(fromStep + 1);
   }
 
@@ -538,9 +678,7 @@ export default function AnytimeAnywhereLimoWebsite({
     try {
       const response = await fetch("/api/bookings", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
@@ -559,12 +697,8 @@ export default function AnytimeAnywhereLimoWebsite({
       setPaymentState(data.payment ?? null);
       setErrors({});
       setSubmitError("");
-      setForm({
-        ...defaultForm,
-        service: "custom",
-        vehicle: vehicles[0]?.slug ?? "",
-        airportRouteId: airportRouteEntries[0]?.id ?? "",
-      });
+      setForm(createInitialFormState());
+      setStep(1);
     } catch {
       setSubmitError(
         "We could not reach the booking service. Check your connection and try again.",
@@ -574,39 +708,6 @@ export default function AnytimeAnywhereLimoWebsite({
     }
   }
 
-  // ─── step badge ──────────────────────────────────────────────────────────
-  function StepBadge({ n, done }) {
-    if (done) {
-      return (
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[0.6rem] font-bold text-[#0a0a0e]">
-          ✓
-        </span>
-      );
-    }
-    return (
-      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
-        step === n
-          ? "border-[var(--accent)] text-[var(--accent)]"
-          : "border-white/20 text-white/30"
-      }`}>
-        {n}
-      </span>
-    );
-  }
-
-  // ─── continue button ─────────────────────────────────────────────────────
-  function ContinueBtn({ onClick, label = "Continue" }) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="lux-button mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e] shadow-[0_12px_30px_rgba(210,176,107,0.18)] hover:bg-[var(--accent-dark)]"
-      >
-        {label}
-      </button>
-    );
-  }
-
   return (
     <aside
       id="booking"
@@ -614,7 +715,6 @@ export default function AnytimeAnywhereLimoWebsite({
       className="booking-panel glass-panel min-w-0 overflow-hidden rounded-[1.4rem] p-6 md:p-8"
       aria-label={heroContent.bookingEyebrow}
     >
-      {/* ── Panel header ─────────────────────────────────────────────── */}
       <div className="relative z-10 flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="lux-section-label">{heroContent.bookingEyebrow}</p>
@@ -624,7 +724,6 @@ export default function AnytimeAnywhereLimoWebsite({
         </div>
       </div>
 
-      {/* ── Success state ────────────────────────────────────────────── */}
       {submittedBooking ? (
         <div className="relative z-10 mt-6 rounded-[1.2rem] border border-[var(--line-strong)] bg-[linear-gradient(180deg,rgba(200,168,112,0.12),rgba(255,255,255,0.02))] p-5">
           <p className="text-xs uppercase tracking-[0.3em] text-[var(--accent-strong)]">
@@ -640,6 +739,7 @@ export default function AnytimeAnywhereLimoWebsite({
               ? `We've received payment for your ${submittedBooking.service.toLowerCase()} request. Follow-up can go to ${submittedBooking.email}.`
               : `We saved your request for ${submittedBooking.service.toLowerCase()}. Follow-up can go to ${submittedBooking.email}.`}
           </p>
+
           <div className="mt-5 grid gap-3 text-sm text-white/68 sm:grid-cols-2">
             <p>Pickup: {submittedBooking.pickup}</p>
             <p>Drop-off: {submittedBooking.dropoff}</p>
@@ -693,20 +793,18 @@ export default function AnytimeAnywhereLimoWebsite({
         </div>
       ) : null}
 
-      {/* ── Error banner ─────────────────────────────────────────────── */}
       {submitError && !submittedBooking ? (
         <div className="relative z-10 mt-6 rounded-[0.9rem] border border-amber-200/20 bg-amber-200/8 px-4 py-3 text-sm text-amber-100/90">
           {submitError}
         </div>
       ) : null}
 
-      {vehicleAvailabilityMessage && !submittedBooking ? (
+      {vehicleAvailabilityMessage && !submittedBooking && showVehicleStep ? (
         <div className="relative z-10 mt-6 rounded-[1.4rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/72">
           {vehicleAvailabilityMessage}
         </div>
       ) : null}
 
-      {/* ── Multi-step accordion form ─────────────────────────────────── */}
       {!submittedBooking ? (
         <form
           onSubmit={handleSubmit}
@@ -714,14 +812,9 @@ export default function AnytimeAnywhereLimoWebsite({
           noValidate
           aria-label="Booking request form"
         >
-
-          {/* ══════════════════════════════════════════════════════════
-              STEP 1 — Trip Details
-          ══════════════════════════════════════════════════════════ */}
           <div className={`overflow-hidden rounded-[1.2rem] border transition-colors ${
             step === 1 ? "border-white/14 bg-white/4" : "border-white/8 bg-white/2"
           }`}>
-            {/* header */}
             {step > 1 ? (
               <button
                 type="button"
@@ -729,31 +822,29 @@ export default function AnytimeAnywhereLimoWebsite({
                 className="flex w-full items-center justify-between px-5 py-4 text-left"
               >
                 <div className="flex items-center gap-3">
-                  <StepBadge n={1} done />
+                  <StepBadge active={false} done number={1} />
                   <span className="text-sm font-medium text-white">Trip Details</span>
                 </div>
                 <span className="max-w-[55%] truncate text-right text-xs text-white/40">
-                  {[selectedService?.title, fmtDate(form.date), fmtTime(form.time)].filter(Boolean).join(" · ")}
+                  {[selectedService?.title, formatShortDate(form.date), formatShortTime(form.time)]
+                    .filter(Boolean)
+                    .join(" - ")}
                 </span>
               </button>
             ) : (
               <div className="flex items-center gap-3 border-b border-white/8 px-5 py-4">
-                <StepBadge n={1} done={false} />
+                <StepBadge active done={false} number={1} />
                 <span className="text-sm font-semibold text-white">Trip Details</span>
               </div>
             )}
 
-            {/* body */}
             {step === 1 ? (
               <div className="px-5 pb-5 pt-4">
                 <div className="grid grid-cols-1 gap-4 min-w-0">
-
-                  {/* Service */}
                   <label className="block" htmlFor="field-service">
                     <span className="mb-2 block text-sm text-white/72">Service</span>
                     <select
                       id="field-service"
-                      aria-required="true"
                       value={form.service}
                       onChange={(event) => updateServiceType(event.target.value)}
                       className={fieldClassName}
@@ -766,29 +857,89 @@ export default function AnytimeAnywhereLimoWebsite({
                     </select>
                   </label>
 
-                  {/* Pickup */}
+                  {form.service === "maine-tours" ? (
+                    <>
+                      <label className="block" htmlFor="field-tour-package">
+                        <span className="mb-2 block text-sm text-white/72">Tour Package</span>
+                        <select
+                          id="field-tour-package"
+                          value={form.tourPackageId}
+                          onChange={(event) => {
+                            updateField("tourPackageId", event.target.value);
+                            updateField("tourPricingTierIndex", "0");
+                          }}
+                          className={fieldClassName}
+                        >
+                          {maineTourPackages.map((tour) => (
+                            <option key={tour.id} value={tour.id} className="bg-[#101319]">
+                              {tour.title}
+                            </option>
+                          ))}
+                        </select>
+                        {errors.tourPackageId ? (
+                          <span className="mt-2 block text-sm text-amber-200">{errors.tourPackageId}</span>
+                        ) : null}
+                      </label>
+
+                      <label className="block" htmlFor="field-tour-tier">
+                        <span className="mb-2 block text-sm text-white/72">Package Tier</span>
+                        <select
+                          id="field-tour-tier"
+                          value={form.tourPricingTierIndex}
+                          onChange={(event) => updateField("tourPricingTierIndex", event.target.value)}
+                          className={fieldClassName}
+                        >
+                          {selectedTour.pricingOptions.map((option, index) => (
+                            <option key={`${selectedTour.id}-${option.title}`} value={String(index)} className="bg-[#101319]">
+                              {option.title} - {option.price}
+                            </option>
+                          ))}
+                        </select>
+                        {errors.tourPricingTierIndex ? (
+                          <span className="mt-2 block text-sm text-amber-200">{errors.tourPricingTierIndex}</span>
+                        ) : null}
+                      </label>
+
+                      <div className="rounded-[1.2rem] border border-white/10 bg-white/3 p-4">
+                        <p className="text-[0.68rem] uppercase tracking-[0.22em] text-[var(--accent)]">
+                          {selectedTour.eyebrow}
+                        </p>
+                        <h3 className="mt-2 text-base font-semibold text-white">
+                          {selectedTourPricing?.title}
+                        </h3>
+                        <p className="mt-1 text-sm font-bold text-[var(--accent-strong)]">
+                          {selectedTourPricing?.price}
+                        </p>
+                        <div className="mt-3 grid gap-2">
+                          {selectedTourPricing?.includes?.map((item) => (
+                            <div key={item} className="flex gap-2 text-xs leading-5 text-white/68">
+                              <span className="shrink-0 text-[var(--accent)]">✓</span>
+                              <span>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : null}
+
                   <AddressAutocompleteField
                     label="Pickup Location"
                     field="pickup"
                     value={form.pickup}
                     onChange={updateField}
                     onCoordinates={setPickupCoords}
-                    placeholder="Airport, hotel, office, or address"
                     error={errors.pickup}
                   />
 
-                  {/* Drop-off */}
                   <AddressAutocompleteField
                     label="Drop-off Location"
                     field="dropoff"
                     value={form.dropoff}
                     onChange={updateField}
                     onCoordinates={setDropoffCoords}
-                    placeholder="Destination or event venue"
                     error={errors.dropoff}
                   />
 
-                  {/* Date + Time */}
                   <div className="grid grid-cols-1 gap-4 min-w-0 sm:grid-cols-2">
                     <label className="block min-w-0">
                       <span className="mb-2 block text-sm text-white/72">Date</span>
@@ -797,7 +948,6 @@ export default function AnytimeAnywhereLimoWebsite({
                         value={form.date}
                         onChange={(event) => updateField("date", event.target.value)}
                         className={fieldClassName}
-                        style={{ WebkitAppearance: "none", appearance: "none" }}
                       />
                       {errors.date ? (
                         <span className="mt-2 block text-sm text-amber-200">{errors.date}</span>
@@ -811,7 +961,6 @@ export default function AnytimeAnywhereLimoWebsite({
                         value={form.time}
                         onChange={(event) => updateField("time", event.target.value)}
                         className={fieldClassName}
-                        style={{ WebkitAppearance: "none", appearance: "none" }}
                       />
                       {errors.time ? (
                         <span className="mt-2 block text-sm text-amber-200">{errors.time}</span>
@@ -819,7 +968,6 @@ export default function AnytimeAnywhereLimoWebsite({
                     </label>
                   </div>
 
-                  {/* Passengers + Luggage */}
                   <div className="grid grid-cols-2 gap-4 min-w-0">
                     <label className="block min-w-0">
                       <span className="mb-2 block text-sm text-white/72">Passengers</span>
@@ -858,109 +1006,103 @@ export default function AnytimeAnywhereLimoWebsite({
                     </label>
                   </div>
 
-                  {/* Distance calculation status */}
                   {isCalculatingDistance ? (
-                    <p className="text-xs text-white/40">Calculating route distance…</p>
+                    <p className="text-xs text-white/40">Calculating route distance...</p>
                   ) : distanceError ? (
                     <p className="rounded-lg border border-amber-400/20 bg-amber-400/8 px-4 py-3 text-sm text-amber-200">
                       {distanceError}
                     </p>
                   ) : distanceInfo && form.service === "custom" ? (
                     <p className="text-xs text-white/40">
-                      Route: {distanceInfo.distanceMiles} mi · {distanceInfo.durationMinutes} min drive
+                      Route: {distanceInfo.distanceMiles} mi - {distanceInfo.durationMinutes} min drive
                     </p>
                   ) : null}
-
                 </div>
 
-                <button
-                  type="button"
+                <ContinueButton
                   onClick={() => tryAdvance(1)}
                   disabled={isCalculatingDistance}
-                  className="lux-button mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e] shadow-[0_12px_30px_rgba(210,176,107,0.18)] hover:bg-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-60"
+                  label={
+                    isCalculatingDistance
+                      ? "Calculating route..."
+                      : showVehicleStep
+                        ? "Continue to Vehicle ->"
+                        : "Continue to Contact ->"
+                  }
+                />
+              </div>
+            ) : null}
+          </div>
+
+          {showVehicleStep ? (
+            <div className={`overflow-hidden rounded-[1.2rem] border transition-colors ${
+              step === 2 ? "border-white/14 bg-white/4" : "border-white/8 bg-white/2"
+            }`}>
+              {step > 2 ? (
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="flex w-full items-center justify-between px-5 py-4 text-left"
                 >
-                  {isCalculatingDistance ? "Calculating route…" : "Continue to Vehicle →"}
+                  <div className="flex items-center gap-3">
+                    <StepBadge active={false} done number={2} />
+                    <span className="text-sm font-medium text-white">Vehicle</span>
+                  </div>
+                  <span className="text-xs text-white/40">{selectedVehicle?.name ?? ""}</span>
                 </button>
-              </div>
-            ) : null}
-          </div>
-
-          {/* ══════════════════════════════════════════════════════════
-              STEP 2 — Vehicle
-          ══════════════════════════════════════════════════════════ */}
-          <div className={`overflow-hidden rounded-[1.2rem] border transition-colors ${
-            step === 2 ? "border-white/14 bg-white/4" : "border-white/8 bg-white/2"
-          }`}>
-            {/* header */}
-            {step > 2 ? (
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="flex w-full items-center justify-between px-5 py-4 text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <StepBadge n={2} done />
-                  <span className="text-sm font-medium text-white">Vehicle</span>
+              ) : (
+                <div className={`flex items-center gap-3 px-5 py-4 ${step < 2 ? "opacity-35" : "border-b border-white/8"}`}>
+                  <StepBadge active={step === 2} done={false} number={2} />
+                  <span className={`text-sm font-semibold ${step === 2 ? "text-white" : "text-white/50"}`}>Vehicle</span>
                 </div>
-                <span className="text-xs text-white/40">{selectedVehicle?.name ?? ""}</span>
-              </button>
-            ) : (
-              <div className={`flex items-center gap-3 px-5 py-4 ${step < 2 ? "opacity-35" : "border-b border-white/8"}`}>
-                <StepBadge n={2} done={false} />
-                <span className={`text-sm font-semibold ${step === 2 ? "text-white" : "text-white/50"}`}>Vehicle</span>
-              </div>
-            )}
+              )}
 
-            {/* body */}
-            {step === 2 ? (
-              <div className="px-5 pb-5 pt-4">
-                <div className="flex flex-col gap-3">
-                  {hasVehicles ? (
-                    vehicles.map((vehicle) => (
-                      <button
-                        key={vehicle.slug}
-                        type="button"
-                        onClick={() => updateVehicle(vehicle.slug)}
-                        className={`w-full rounded-[1.2rem] border p-5 text-left transition-colors ${
-                          form.vehicle === vehicle.slug
-                            ? "border-[var(--accent)] bg-[rgba(200,168,112,0.07)]"
-                            : "border-white/10 bg-white/3 hover:border-white/20"
-                        }`}
-                      >
-                        <p className="text-[0.68rem] uppercase tracking-[0.22em] text-[var(--accent)]">
-                          Luxury SUV
-                        </p>
-                        <p className="mt-1 text-base font-semibold text-white">{vehicle.name}</p>
-                        <p className="mt-1 text-xs text-white/46">
-                          Up to {vehicle.capacity} passengers
-                        </p>
-                        {form.vehicle === vehicle.slug ? (
-                          <span className="mt-3 inline-block rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-0.5 text-[0.68rem] text-[var(--accent)]">
-                            Selected
-                          </span>
-                        ) : null}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-sm text-white/50">{bookingUi.unavailableMessage}</p>
-                  )}
-                  {errors.vehicle ? (
-                    <span className="text-sm text-amber-200">{errors.vehicle}</span>
-                  ) : null}
+              {step === 2 ? (
+                <div className="px-5 pb-5 pt-4">
+                  <div className="flex flex-col gap-3">
+                    {hasVehicles ? (
+                      vehicles.map((vehicle) => (
+                        <button
+                          key={vehicle.slug}
+                          type="button"
+                          onClick={() => updateVehicle(vehicle.slug)}
+                          className={`w-full rounded-[1.2rem] border p-5 text-left transition-colors ${
+                            form.vehicle === vehicle.slug
+                              ? "border-[var(--accent)] bg-[rgba(200,168,112,0.07)]"
+                              : "border-white/10 bg-white/3 hover:border-white/20"
+                          }`}
+                        >
+                          <p className="text-[0.68rem] uppercase tracking-[0.22em] text-[var(--accent)]">
+                            Luxury SUV
+                          </p>
+                          <p className="mt-1 text-base font-semibold text-white">{vehicle.name}</p>
+                          <p className="mt-1 text-xs text-white/46">
+                            Up to {vehicle.capacity} passengers
+                          </p>
+                          {form.vehicle === vehicle.slug ? (
+                            <span className="mt-3 inline-block rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-0.5 text-[0.68rem] text-[var(--accent)]">
+                              Selected
+                            </span>
+                          ) : null}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="text-sm text-white/50">{bookingUi.unavailableMessage}</p>
+                    )}
+                    {errors.vehicle ? (
+                      <span className="text-sm text-amber-200">{errors.vehicle}</span>
+                    ) : null}
+                  </div>
+
+                  <ContinueButton onClick={() => setStep(3)} label="Continue to Contact ->" />
                 </div>
+              ) : null}
+            </div>
+          ) : null}
 
-                <ContinueBtn onClick={() => setStep(3)} label="Continue to Contact →" />
-              </div>
-            ) : null}
-          </div>
-
-          {/* ══════════════════════════════════════════════════════════
-              STEP 3 — Contact
-          ══════════════════════════════════════════════════════════ */}
           <div className={`overflow-hidden rounded-[1.2rem] border transition-colors ${
             step === 3 ? "border-white/14 bg-white/4" : "border-white/8 bg-white/2"
           }`}>
-            {/* header */}
             {step > 3 ? (
               <button
                 type="button"
@@ -968,7 +1110,7 @@ export default function AnytimeAnywhereLimoWebsite({
                 className="flex w-full items-center justify-between px-5 py-4 text-left"
               >
                 <div className="flex items-center gap-3">
-                  <StepBadge n={3} done />
+                  <StepBadge active={false} done number={3} />
                   <span className="text-sm font-medium text-white">Contact</span>
                 </div>
                 <span className="max-w-[55%] truncate text-right text-xs text-white/40">
@@ -977,12 +1119,11 @@ export default function AnytimeAnywhereLimoWebsite({
               </button>
             ) : (
               <div className={`flex items-center gap-3 px-5 py-4 ${step < 3 ? "opacity-35" : "border-b border-white/8"}`}>
-                <StepBadge n={3} done={false} />
+                <StepBadge active={step === 3} done={false} number={3} />
                 <span className={`text-sm font-semibold ${step === 3 ? "text-white" : "text-white/50"}`}>Contact</span>
               </div>
             )}
 
-            {/* body */}
             {step === 3 ? (
               <div className="px-5 pb-5 pt-4">
                 <div className="grid grid-cols-1 gap-4 min-w-0">
@@ -992,7 +1133,6 @@ export default function AnytimeAnywhereLimoWebsite({
                       type="text"
                       value={form.fullName}
                       onChange={(event) => updateField("fullName", event.target.value)}
-                      placeholder="Passenger or organizer name"
                       className={fieldClassName}
                     />
                     {errors.fullName ? (
@@ -1006,7 +1146,6 @@ export default function AnytimeAnywhereLimoWebsite({
                       type="tel"
                       value={form.phone}
                       onChange={(event) => updateField("phone", event.target.value)}
-                      placeholder="(555) 123-4567"
                       className={fieldClassName}
                     />
                     {errors.phone ? (
@@ -1020,7 +1159,6 @@ export default function AnytimeAnywhereLimoWebsite({
                       type="email"
                       value={form.email}
                       onChange={(event) => updateField("email", event.target.value)}
-                      placeholder="name@example.com"
                       className={fieldClassName}
                     />
                     {errors.email ? (
@@ -1030,80 +1168,78 @@ export default function AnytimeAnywhereLimoWebsite({
 
                   <label className="block">
                     <span className="mb-2 block text-sm text-white/72">
-                      Special Requests{" "}
-                      <span className="text-white/36">(optional)</span>
+                      Special Requests <span className="text-white/36">(optional)</span>
                     </span>
                     <textarea
                       rows={3}
                       value={form.requests}
                       onChange={(event) => updateField("requests", event.target.value)}
-                      placeholder="Child seat, flight number, event notes, extra stops…"
                       className={`${fieldClassName} resize-none`}
                     />
                   </label>
                 </div>
 
-                <ContinueBtn onClick={() => tryAdvance(3)} label="Review Summary →" />
+                <ContinueButton onClick={() => tryAdvance(3)} label="Review Summary ->" />
               </div>
             ) : null}
           </div>
 
-          {/* ══════════════════════════════════════════════════════════
-              STEP 4 — Summary + Submit
-          ══════════════════════════════════════════════════════════ */}
           <div className={`overflow-hidden rounded-[1.2rem] border transition-colors ${
             step === 4 ? "border-white/14 bg-white/4" : "border-white/8 bg-white/2"
           }`}>
-            {/* header */}
-            <div className={`flex items-center gap-3 px-5 py-4 ${step < 4 ? "opacity-35" : step === 4 ? "border-b border-white/8" : ""}`}>
-              <StepBadge n={4} done={false} />
+            <div className={`flex items-center gap-3 px-5 py-4 ${step < 4 ? "opacity-35" : "border-b border-white/8"}`}>
+              <StepBadge active={step === 4} done={false} number={4} />
               <span className={`text-sm font-semibold ${step === 4 ? "text-white" : "text-white/50"}`}>Summary</span>
             </div>
 
-            {/* body */}
             {step === 4 ? (
               <div className="px-5 pb-5 pt-4">
-
-                {/* Details grid */}
                 <div className="grid grid-cols-1 gap-y-3 sm:grid-cols-2">
                   {[
-                    { label: "Service",    value: selectedService?.title },
-                    { label: "Vehicle",    value: selectedVehicle?.name },
-                    { label: "Pickup",     value: form.pickup, full: true },
-                    { label: "Drop-off",   value: form.dropoff, full: true },
-                    { label: "Date",       value: fmtDate(form.date) },
-                    { label: "Time",       value: fmtTime(form.time) },
+                    { label: "Service", value: selectedService?.title },
+                    ...(form.service === "maine-tours"
+                      ? [
+                          { label: "Tour Package", value: selectedTour?.title },
+                          { label: "Package Tier", value: selectedTourPricing?.title },
+                        ]
+                      : [{ label: "Vehicle", value: selectedVehicle?.name }]),
+                    { label: "Pickup", value: form.pickup, full: true },
+                    { label: "Drop-off", value: form.dropoff, full: true },
+                    { label: "Date", value: formatShortDate(form.date) },
+                    { label: "Time", value: formatShortTime(form.time) },
                     { label: "Passengers", value: form.passengers },
-                    { label: "Luggage",    value: `${form.bags} ${Number(form.bags) === 1 ? "bag" : "bags"}` },
-                    { label: "Name",       value: form.fullName },
-                    { label: "Phone",      value: form.phone },
-                    { label: "Email",      value: form.email, full: true },
+                    { label: "Luggage", value: `${form.bags} ${Number(form.bags) === 1 ? "bag" : "bags"}` },
+                    { label: "Name", value: form.fullName },
+                    { label: "Phone", value: form.phone },
+                    { label: "Email", value: form.email, full: true },
                     form.requests
                       ? { label: "Requests", value: form.requests, full: true }
                       : null,
                     form.service === "custom" && form.estimatedTripMiles && form.estimatedTripMiles !== "0"
-                      ? { label: "Est. Distance", value: `${form.estimatedTripMiles} mi · ${form.estimatedTripHours} hr` }
+                      ? { label: "Est. Distance", value: `${form.estimatedTripMiles} mi - ${form.estimatedTripHours} hr` }
+                      : null,
+                    form.service === "maine-tours"
+                      ? { label: "Suggested Route", value: selectedTour?.route?.join(" / "), full: true }
                       : null,
                   ]
                     .filter(Boolean)
                     .map(({ label, value, full }) => (
                       <div key={label} className={`${full ? "sm:col-span-2" : ""} py-1`}>
                         <p className="text-[0.7rem] uppercase tracking-[0.18em] text-white/36">{label}</p>
-                        <p className="mt-0.5 text-sm text-white/80">{value || "—"}</p>
+                        <p className="mt-0.5 text-sm text-white/80">{value || "-"}</p>
                       </div>
                     ))}
                 </div>
 
                 <div className="my-5 border-t border-white/8" />
 
-                {/* Live pricing block */}
                 <div className="rounded-[1.2rem] border border-white/10 bg-white/3 p-5">
                   <div className="flex items-end justify-between gap-4">
                     <div>
                       <p className="lux-section-label !mb-0">Live pricing</p>
                       <h3 className="mt-2 font-display text-[1.6rem] leading-none text-white">
                         {isCalculatingDistance
-                          ? "Calculating…"
+                          ? "Calculating..."
                           : estimate.quoteMode === "request"
                             ? "Request quote"
                             : `Est. total ${quoteDisplayAmount}`}
@@ -1116,7 +1252,7 @@ export default function AnytimeAnywhereLimoWebsite({
 
                   {isCalculatingDistance ? (
                     <p className="mt-4 text-sm text-white/40">
-                      Calculating route distance — pricing will appear in a moment.
+                      Calculating route distance - pricing will appear in a moment.
                     </p>
                   ) : estimate.lineItems?.length ? (
                     <div className="mt-4 grid gap-2 text-sm text-white/60 sm:grid-cols-2">
@@ -1129,8 +1265,8 @@ export default function AnytimeAnywhereLimoWebsite({
                   ) : (
                     <p className="mt-4 text-sm leading-7 text-white/56">
                       {distanceError
-                        ? "Route could not be calculated — Autovise will quote this manually."
-                        : "Submit your trip and we'll return a manual quote."}
+                        ? "Route could not be calculated - Autovise will quote this manually."
+                        : "Submit your trip and we will return a manual quote."}
                     </p>
                   )}
 
@@ -1148,17 +1284,16 @@ export default function AnytimeAnywhereLimoWebsite({
                   </div>
                 </div>
 
-                {/* Submit */}
                 <button
                   type="submit"
-                  disabled={isSubmitting || !hasVehicles}
+                  disabled={isSubmitting || (showVehicleStep && !hasVehicles)}
                   className="lux-button mt-5 inline-flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-bold text-[#0a0a0e] shadow-[0_18px_42px_rgba(210,176,107,0.22)] hover:bg-[var(--accent-dark)] disabled:cursor-not-allowed disabled:opacity-75"
                 >
                   {isSubmitting
-                    ? "Saving booking…"
-                    : hasVehicles
-                      ? bookingUi.submitButtonLabel
-                      : bookingUi.unavailableButtonLabel}
+                    ? "Saving booking..."
+                    : showVehicleStep && !hasVehicles
+                      ? bookingUi.unavailableButtonLabel
+                      : bookingUi.submitButtonLabel}
                 </button>
 
                 <button
@@ -1171,7 +1306,6 @@ export default function AnytimeAnywhereLimoWebsite({
               </div>
             ) : null}
           </div>
-
         </form>
       ) : null}
     </aside>

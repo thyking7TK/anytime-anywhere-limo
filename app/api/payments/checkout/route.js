@@ -20,13 +20,13 @@ function toDisplayAmount(cents) {
 function getSuccessUrl(request) {
   const origin = new URL(request.url).origin;
   const siteUrl = resolveSiteUrl(origin);
-  return `${siteUrl}/?session_id={CHECKOUT_SESSION_ID}#booking`;
+  return `${siteUrl}/book?session_id={CHECKOUT_SESSION_ID}#book-now`;
 }
 
 function getCancelUrl(request) {
   const origin = new URL(request.url).origin;
   const siteUrl = resolveSiteUrl(origin);
-  return `${siteUrl}/#booking`;
+  return `${siteUrl}/book#book-now`;
 }
 
 export async function POST(request) {
