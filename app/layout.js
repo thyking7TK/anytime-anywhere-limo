@@ -1,4 +1,5 @@
 import { Cormorant_Garamond, Manrope } from "next/font/google";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
@@ -165,6 +166,18 @@ export default function RootLayout({ children }) {
       className={`${manrope.variable} ${cormorant.variable} h-full antialiased`}
     >
       <head>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-QQ8HNF4RVH"
+          strategy="afterInteractive"
+        />
+        <Script id="google-tag-manager" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-QQ8HNF4RVH');
+          `}
+        </Script>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
