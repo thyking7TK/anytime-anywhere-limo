@@ -82,13 +82,13 @@ export default async function ContactPage({ searchParams }) {
       <SiteHeader siteContent={siteContent} />
 
       <main className="relative z-10">
-        <section className="px-4 py-16 sm:px-5 md:py-20 lg:py-24">
+        <section className="px-3 py-16 sm:px-5 md:py-20 lg:py-24">
           <div className="limo-container">
             <p className="lux-section-label">
               {contactSection.label || "Contact"}
             </p>
             <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
-              <div>
+              <div className="order-2 xl:order-1">
                 <h1 className="max-w-[760px] font-display text-[1.8rem] leading-[1.05] text-white sm:text-[2.4rem] md:text-[3.4rem] lg:text-[4.2rem]">
                   {contactSection.title || "Ready to book your ride?"}
                 </h1>
@@ -150,7 +150,7 @@ export default async function ContactPage({ searchParams }) {
                 </div>
               </div>
 
-              <div className="grid gap-4">
+              <div className="order-1 grid gap-4 xl:order-2">
                 <ContactForm initialService={requestedService} />
               </div>
             </div>

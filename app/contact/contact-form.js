@@ -85,7 +85,7 @@ export default function ContactForm({ initialService = "General Inquiry" }) {
     <form
       id="contact-form"
       onSubmit={handleSubmit}
-      className="glass-panel soft-lift rounded-[1.5rem] p-6 sm:p-7"
+      className="glass-panel soft-lift rounded-[1.5rem] p-5 sm:p-7"
     >
       <p className="lux-section-label !mb-0 text-[0.7rem]">Contact form</p>
       <h2 className="mt-4 font-display text-[1.7rem] leading-none text-white sm:text-[2.1rem]">

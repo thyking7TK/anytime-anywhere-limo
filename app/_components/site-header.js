@@ -154,6 +154,8 @@ function MobileNav({ navItems, activePathname, brandContent }) {
             marginTop: "auto",
             borderTop: "1px solid rgba(255,255,255,0.08)",
             padding: "16px",
+            display: "grid",
+            gap: "10px",
           }}
         >
           <Link
@@ -175,6 +177,26 @@ function MobileNav({ navItems, activePathname, brandContent }) {
             }}
           >
             Reserve Now
+          </Link>
+          <Link
+            href="/maine-touring-packages"
+            onClick={close}
+            style={{
+              display: "flex",
+              minHeight: "48px",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "9999px",
+              border: "1px solid rgba(255,255,255,0.12)",
+              backgroundColor: "rgba(255,255,255,0.03)",
+              padding: "0 24px",
+              fontSize: "0.875rem",
+              fontWeight: 700,
+              color: "#ffffff",
+              textDecoration: "none",
+            }}
+          >
+            Private Touring
           </Link>
         </div>
       </div>
@@ -272,15 +294,29 @@ export default function SiteHeader({ siteContent }) {
           })}
         </nav>
 
-        <Link
-          href="/book"
-          className="lux-button inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--accent)] px-4 text-[0.72rem] font-bold text-[#0a0a0e] shadow-[0_8px_24px_rgba(200,168,112,0.28)] hover:bg-[var(--accent-dark)] sm:px-5 sm:text-xs md:min-h-14 md:px-7 md:text-sm"
-        >
-          <span className="sm:hidden">Book</span>
-          <span className="hidden sm:inline">
-            {navigationContent.reserve || "Book Now"}
-          </span>
-        </Link>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            href="/maine-touring-packages"
+            className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/12 bg-white/3 px-3 text-[0.66rem] font-bold text-white hover:border-[var(--accent)] hover:bg-white/6 sm:hidden"
+          >
+            Touring
+          </Link>
+          <Link
+            href="/maine-touring-packages"
+            className="hidden min-h-10 items-center justify-center rounded-full border border-white/12 bg-white/3 px-4 text-[0.72rem] font-bold text-white hover:border-[var(--accent)] hover:bg-white/6 sm:inline-flex sm:px-5 sm:text-xs md:min-h-14 md:px-6 md:text-sm"
+          >
+            Private Touring
+          </Link>
+          <Link
+            href="/book"
+            className="lux-button inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--accent)] px-4 text-[0.72rem] font-bold text-[#0a0a0e] shadow-[0_8px_24px_rgba(200,168,112,0.28)] hover:bg-[var(--accent-dark)] sm:px-5 sm:text-xs md:min-h-14 md:px-7 md:text-sm"
+          >
+            <span className="sm:hidden">Book</span>
+            <span className="hidden sm:inline">
+              {navigationContent.reserve || "Book Now"}
+            </span>
+          </Link>
+        </div>
 
         <MobileNav
           navItems={navItems}

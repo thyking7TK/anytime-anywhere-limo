@@ -529,6 +529,26 @@ textarea {
   }
 }
 
+@media (max-width: 480px) {
+  .limo-container {
+    width: min(100% - 16px, 1240px);
+  }
+
+  .glass-panel {
+    border-radius: 1.2rem;
+  }
+
+  .floating-call {
+    right: 10px;
+    left: auto;
+    padding: 10px 14px;
+  }
+
+  .scroll-top-btn {
+    left: 10px;
+  }
+}
+
 /* ── Mobile nav drawer ───────────────────────────────── */
 /*
   Hard-coded in plain CSS so no Tailwind purge, arbitrary-value issue,

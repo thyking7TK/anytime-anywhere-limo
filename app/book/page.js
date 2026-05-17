@@ -47,9 +47,9 @@ export default async function BookPage() {
 
       <SiteHeader siteContent={siteContent} />
 
-      <main className="relative z-10 px-4 py-16 sm:px-5 md:py-20 lg:py-24">
+      <main className="relative z-10 px-3 py-16 sm:px-5 md:py-20 lg:py-24">
         <div className="limo-container">
-          <div id="book-now" className="mx-auto max-w-[860px]">
+          <div id="book-now" className="mx-auto w-full max-w-none lg:max-w-[980px]">
             <BookingPanelLazy
               initialCatalog={catalog}
               initialSiteContent={siteContent}
