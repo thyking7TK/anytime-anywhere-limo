@@ -245,6 +245,17 @@ export default function MaineToursShowcase() {
                 These packages fit naturally into the Autovise Black Car service menu as long-distance, VIP, airport-connected, and special occasion experiences.
               </p>
 
+              <div className="mt-7 flex-1 space-y-3.5">
+                {maineTourPackages.map((tour) => (
+                  <PackageButton
+                    key={tour.id}
+                    tour={tour}
+                    selected={selected.id === tour.id}
+                    onSelect={handleSelectTour}
+                  />
+                ))}
+              </div>
+
               <div className="mt-7 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-[1.6rem] border border-[rgba(200,168,112,0.12)] bg-black/40 p-6 text-center">
                   <p className="font-display text-[3rem] leading-none text-white">24/7</p>
@@ -258,17 +269,6 @@ export default function MaineToursShowcase() {
                     Premium coastal routes across Portland, Camden, Acadia, and Bar Harbor.
                   </p>
                 </div>
-              </div>
-
-              <div className="mt-7 flex-1 space-y-3.5">
-                {maineTourPackages.map((tour) => (
-                  <PackageButton
-                    key={tour.id}
-                    tour={tour}
-                    selected={selected.id === tour.id}
-                    onSelect={handleSelectTour}
-                  />
-                ))}
               </div>
             </div>
 

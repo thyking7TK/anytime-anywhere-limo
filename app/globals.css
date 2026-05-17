@@ -350,6 +350,33 @@ textarea {
   box-shadow: 0 0 0 4px rgba(210, 176, 107, 0.08);
 }
 
+.frost-input[type="date"],
+.frost-input[type="time"] {
+  min-height: 56px;
+  line-height: 1.25;
+  color-scheme: dark;
+}
+
+.frost-input[type="date"]::-webkit-date-and-time-value,
+.frost-input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+.frost-input[type="date"]::-webkit-datetime-edit,
+.frost-input[type="time"]::-webkit-datetime-edit {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+.frost-input[type="date"]::-webkit-calendar-picker-indicator,
+.frost-input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0.88;
+  cursor: pointer;
+  transform: scale(1.12);
+  transform-origin: center;
+}
+
 .fade-in {
   opacity: 0;
   transform: translateY(16px);
