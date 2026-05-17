@@ -51,6 +51,17 @@ function formatShortTime(value) {
   return `${hour % 12 || 12}:${minutes}${hour >= 12 ? "pm" : "am"}`;
 }
 
+const timeOptions = Array.from({ length: 96 }, (_, index) => {
+  const hours = String(Math.floor(index / 4)).padStart(2, "0");
+  const minutes = String((index % 4) * 15).padStart(2, "0");
+  const value = `${hours}:${minutes}`;
+
+  return {
+    value,
+    label: formatShortTime(value),
+  };
+});
+
 function StepBadge({ active, done, number }) {
   if (done) {
     return (
@@ -956,12 +967,24 @@ export default function AnytimeAnywhereLimoWebsite({
 
                     <label className="block min-w-0">
                       <span className="mb-2 block text-sm text-white/72">Time</span>
-                      <input
-                        type="time"
+                      <select
                         value={form.time}
                         onChange={(event) => updateField("time", event.target.value)}
                         className={fieldClassName}
-                      />
+                      >
+                        <option value="" className="bg-[#101319]">
+                          Select time
+                        </option>
+                        {timeOptions.map((option) => (
+                          <option
+                            key={option.value}
+                            value={option.value}
+                            className="bg-[#101319]"
+                          >
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
                       {errors.time ? (
                         <span className="mt-2 block text-sm text-amber-200">{errors.time}</span>
                       ) : null}
