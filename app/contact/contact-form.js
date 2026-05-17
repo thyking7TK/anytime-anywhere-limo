@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 const fieldClassName =
-  "w-full rounded-[1.2rem] border border-white/10 bg-black/55 px-4 py-4 text-sm text-white outline-none placeholder:text-white/28 focus:border-[var(--accent)]";
+  "frost-input w-full rounded-[1.2rem] border border-white/10 bg-black/55 px-4 py-4 text-sm text-white outline-none placeholder:text-white/28 focus:border-[var(--accent)]";
 
 const serviceOptions = [
   "Nationwide Airport Transfers",

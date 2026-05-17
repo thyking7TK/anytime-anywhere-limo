@@ -344,10 +344,24 @@ textarea {
 
 .frost-input {
   background: rgba(255, 255, 255, 0.04);
+  color-scheme: dark;
+  accent-color: var(--accent);
 }
 
 .frost-input:focus {
   box-shadow: 0 0 0 4px rgba(210, 176, 107, 0.08);
+}
+
+select.frost-input {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 3rem;
+  background-image:
+    linear-gradient(180deg, transparent, transparent),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='10' viewBox='0 0 14 10' fill='none'%3E%3Cpath d='M2 2.25L7 7.25L12 2.25' stroke='%23f0ede6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat, no-repeat;
+  background-position: right 1rem center, right 1rem center;
+  background-size: auto, 14px 10px;
 }
 
 .frost-input[type="date"],
@@ -392,6 +406,7 @@ textarea {
   cursor: pointer;
   transform: scale(1.12);
   transform-origin: center;
+  filter: brightness(0) invert(0.92) sepia(0.08) saturate(1.1);
 }
 
 .fade-in {

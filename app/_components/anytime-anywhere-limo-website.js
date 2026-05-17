@@ -951,7 +951,7 @@ export default function AnytimeAnywhereLimoWebsite({
                     error={errors.dropoff}
                   />
 
-                  <div className="grid grid-cols-1 gap-4 min-w-0 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 min-w-0 xl:grid-cols-2">
                     <label className="block min-w-0">
                       <span className="mb-2 block text-sm text-white/72">Date</span>
                       <input
@@ -991,7 +991,7 @@ export default function AnytimeAnywhereLimoWebsite({
                     </label>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 min-w-0 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 min-w-0 xl:grid-cols-2">
                     <label className="block min-w-0">
                       <span className="mb-2 block text-sm text-white/72">Passengers</span>
                       <select
