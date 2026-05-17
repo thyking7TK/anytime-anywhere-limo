@@ -294,22 +294,28 @@ export default function SiteHeader({ siteContent }) {
           })}
         </nav>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <Link
             href="/maine-touring-packages"
-            className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/12 bg-white/3 px-3 text-[0.66rem] font-bold text-white hover:border-[var(--accent)] hover:bg-white/6 sm:hidden"
+            className="lux-button inline-flex min-h-10 w-[88px] items-center justify-center rounded-full bg-[var(--accent)] px-3 text-center text-[0.62rem] font-bold leading-[1.05] text-[#0a0a0e] shadow-[0_8px_24px_rgba(200,168,112,0.2)] hover:bg-[var(--accent-dark)] sm:hidden"
           >
-            Touring
-          </Link>
-          <Link
-            href="/maine-touring-packages"
-            className="hidden min-h-10 items-center justify-center rounded-full border border-white/12 bg-white/3 px-4 text-[0.72rem] font-bold text-white hover:border-[var(--accent)] hover:bg-white/6 sm:inline-flex sm:px-5 sm:text-xs md:min-h-14 md:px-6 md:text-sm"
-          >
-            Private Touring
+            Maine Touring
           </Link>
           <Link
             href="/book"
-            className="lux-button inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--accent)] px-4 text-[0.72rem] font-bold text-[#0a0a0e] shadow-[0_8px_24px_rgba(200,168,112,0.28)] hover:bg-[var(--accent-dark)] sm:px-5 sm:text-xs md:min-h-14 md:px-7 md:text-sm"
+            className="lux-button inline-flex min-h-10 min-w-[58px] items-center justify-center rounded-full bg-[var(--accent)] px-3 text-center text-[0.66rem] font-bold text-[#0a0a0e] shadow-[0_8px_24px_rgba(200,168,112,0.28)] hover:bg-[var(--accent-dark)] sm:hidden"
+          >
+            Book
+          </Link>
+          <Link
+            href="/maine-touring-packages"
+            className="lux-button hidden min-h-10 min-w-[146px] items-center justify-center whitespace-nowrap rounded-full bg-[var(--accent)] px-5 text-center text-[0.72rem] font-bold text-[#0a0a0e] shadow-[0_8px_24px_rgba(200,168,112,0.2)] hover:bg-[var(--accent-dark)] sm:inline-flex sm:text-xs md:min-h-14 md:min-w-[168px] md:px-6 md:text-sm"
+          >
+            Maine Touring
+          </Link>
+          <Link
+            href="/book"
+            className="lux-button hidden min-h-10 items-center justify-center rounded-full bg-[var(--accent)] px-4 text-[0.72rem] font-bold text-[#0a0a0e] shadow-[0_8px_24px_rgba(200,168,112,0.28)] hover:bg-[var(--accent-dark)] sm:inline-flex sm:px-5 sm:text-xs md:min-h-14 md:px-7 md:text-sm"
           >
             <span className="sm:hidden">Book</span>
             <span className="hidden sm:inline">
