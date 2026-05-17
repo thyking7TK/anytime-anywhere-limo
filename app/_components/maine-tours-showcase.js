@@ -174,7 +174,7 @@ export default function MaineToursShowcase() {
   const [activePriceIndex, setActivePriceIndex] = useState(0);
   const [showEstimate, setShowEstimate] = useState(false);
   const [customNotes, setCustomNotes] = useState("");
-  const [pickup, setPickup] = useState("Portland Jetport / Hotel Pickup");
+  const [pickup, setPickup] = useState("");
   const [guests, setGuests] = useState("2 passengers");
 
   const routeText = useMemo(() => selected.route.join(" / "), [selected]);
@@ -202,13 +202,16 @@ export default function MaineToursShowcase() {
     );
   }
 
-  function openBookingForSelectedTour() {
+  function openBookingForSelectedTour(
+    tourId = selected.id,
+    tierIndex = activePriceIndex,
+  ) {
     const guestCountMatch = String(guests).match(/\d+/);
     const passengerCount = guestCountMatch?.[0] ?? "2";
     const params = new URLSearchParams({
       service: "maine-tours",
-      tourPackageId: selected.id,
-      tourPricingTierIndex: String(activePriceIndex),
+      tourPackageId: tourId,
+      tourPricingTierIndex: String(tierIndex),
       pickup,
       passengers: passengerCount,
       requests: customNotes,
@@ -322,7 +325,14 @@ export default function MaineToursShowcase() {
                     </div>
 
                     {activePricing ? (
-                      <div className="mt-3 flex flex-1 flex-col rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openBookingForSelectedTour(selected.id, activePriceIndex)
+                        }
+                        className="mt-3 flex flex-1 flex-col rounded-[1.25rem] border border-white/10 bg-white/[0.02] p-4 text-left transition hover:border-[var(--accent)]/50 hover:bg-white/[0.04]"
+                        aria-label={`Book ${selected.title} - ${activePricing.title}`}
+                      >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="text-base font-bold leading-snug text-white">
@@ -349,7 +359,11 @@ export default function MaineToursShowcase() {
                             </div>
                           ))}
                         </div>
-                      </div>
+                        <span className="mt-4 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
+                          Continue to book
+                          <span aria-hidden="true">→</span>
+                        </span>
+                      </button>
                     ) : null}
 
                     <div className="mt-3 flex gap-2">
